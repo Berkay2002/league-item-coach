@@ -4,7 +4,7 @@
 
 Add the first Windows Overwolf shell with mocked recommendation output.
 
-PRD: `docs/product/mvp-prd.md`
+PRD: [League Item Coach MVP PRD](https://github.com/Berkay2002/league-item-coach/issues/13), source `docs/product/mvp-prd.md`
 
 ## Acceptance criteria
 
@@ -16,5 +16,5 @@ PRD: `docs/product/mvp-prd.md`
 
 ## Blocked by
 
-- Repo Baseline And Compliance Guardrails
-- Static Item Recommendation Tracer Bullet
+- #1
+- #3

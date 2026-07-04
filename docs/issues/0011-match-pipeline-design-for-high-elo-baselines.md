@@ -4,7 +4,7 @@
 
 Document the Riot Match-V5 aggregation path for high-elo baseline tables.
 
-PRD: `docs/product/mvp-prd.md`
+PRD: [League Item Coach MVP PRD](https://github.com/Berkay2002/league-item-coach/issues/13), source `docs/product/mvp-prd.md`
 
 ## Acceptance criteria
 
@@ -16,4 +16,4 @@ PRD: `docs/product/mvp-prd.md`
 
 ## Blocked by
 
-- Supabase Recommendation Version And Local Cache
+- #6

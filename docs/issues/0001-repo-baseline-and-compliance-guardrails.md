@@ -4,7 +4,7 @@
 
 Set up the project baseline, docs, local issue tracker, and compliance guardrails.
 
-PRD: `docs/product/mvp-prd.md`
+PRD: [League Item Coach MVP PRD](https://github.com/Berkay2002/league-item-coach/issues/13), source `docs/product/mvp-prd.md`
 
 ## Acceptance criteria
 

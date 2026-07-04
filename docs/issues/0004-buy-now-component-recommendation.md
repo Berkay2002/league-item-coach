@@ -4,7 +4,7 @@
 
 Add current-gold component recommendations to the item recommendation path.
 
-PRD: `docs/product/mvp-prd.md`
+PRD: [League Item Coach MVP PRD](https://github.com/Berkay2002/league-item-coach/issues/13), source `docs/product/mvp-prd.md`
 
 ## Acceptance criteria
 
@@ -17,4 +17,4 @@ PRD: `docs/product/mvp-prd.md`
 
 ## Blocked by
 
-- Static Item Recommendation Tracer Bullet
+- #3

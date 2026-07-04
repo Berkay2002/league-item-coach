@@ -4,7 +4,7 @@
 
 Wire the Overwolf shell to the live/replay adapter and shared recommender.
 
-PRD: `docs/product/mvp-prd.md`
+PRD: [League Item Coach MVP PRD](https://github.com/Berkay2002/league-item-coach/issues/13), source `docs/product/mvp-prd.md`
 
 ## Acceptance criteria
 
@@ -18,6 +18,6 @@ PRD: `docs/product/mvp-prd.md`
 
 ## Blocked by
 
-- Live Client Data Replay Adapter
-- Dynamic Threat-Weighted Item Updates
-- Overwolf Overlay Shell With Mocked Recommendations
+- #7
+- #8
+- #9
