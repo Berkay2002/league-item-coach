@@ -10,6 +10,7 @@ The product direction is Windows-first with an Overwolf overlay, plus a web app 
 - MVP PRD: `docs/product/mvp-prd.md`
 - Local issues: `docs/issues/`
 - MVP compliance guardrails: `docs/compliance/mvp-guardrails.md`
+- OpenAPI references: `docs/openapi/`
 
 ## Stack
 

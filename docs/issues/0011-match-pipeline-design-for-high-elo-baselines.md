@@ -6,6 +6,8 @@ Document the Riot Match-V5 aggregation path for high-elo baseline tables.
 
 PRD: [League Item Coach MVP PRD](https://github.com/Berkay2002/league-item-coach/issues/13), source `docs/product/mvp-prd.md`
 
+API reference: `docs/openapi/openapi-3.0.0.json`
+
 ## Goal
 
 Document the Match-V5 high-elo aggregation path from match collection through compact Supabase-compatible recommendation outputs, including API key boundaries and the fields needed for item/rune baselines.
@@ -13,6 +15,7 @@ Document the Match-V5 high-elo aggregation path from match collection through co
 ## Acceptance criteria
 
 - [ ] The design explains how match IDs are collected by region and rank band.
+- [ ] The design cites the pinned Riot API OpenAPI schema for Riot-hosted endpoint contracts.
 - [ ] The design lists the Match-V5 detail and timeline fields needed for items, runes, roles, patch, game duration, outcome, gold, CS, KDA, and team comps.
 - [ ] The design defines aggregation outputs for champion, role, patch, item slot, rune page, sample size, adjusted winrate, pickrate, and confidence.
 - [ ] The design keeps Riot API keys on backend or worker surfaces only.
