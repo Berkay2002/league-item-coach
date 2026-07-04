@@ -16,6 +16,7 @@ export {
   type ManualPlannerInput,
   type ManualPlannerRecommendation,
   type PlannerItemRecommendation,
+  type RecommendationConfidence,
   type Role,
   type SeededChampion,
   type SeededItem,
