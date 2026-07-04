@@ -67,6 +67,43 @@ describe("manual planner recommendation", () => {
     expect(recommendation.compliance.allowed).toBe(true)
   })
 
+  test("returns a champion-select rune fixture for a champion, role, and matchup", () => {
+    const recommendation = recommendForManualPlanner(
+      staticHealingCompFixture.input
+    )
+
+    expect(recommendation.runeRecommendation.primaryTree).toEqual(
+      expect.objectContaining({
+        dataDragonId: 8000,
+        name: "Precision",
+      })
+    )
+    expect(recommendation.runeRecommendation.keystone).toEqual(
+      expect.objectContaining({
+        dataDragonId: 8008,
+        name: "Lethal Tempo",
+      })
+    )
+    expect(recommendation.runeRecommendation.secondaryTree).toEqual(
+      expect.objectContaining({
+        dataDragonId: 8400,
+        name: "Resolve",
+      })
+    )
+    expect(
+      recommendation.runeRecommendation.keyMinorRunes.map((rune) => rune.name)
+    ).toEqual([
+      "Presence of Mind",
+      "Legend: Bloodline",
+      "Cut Down",
+      "Bone Plating",
+      "Overgrowth",
+    ])
+    expect(recommendation.runeRecommendation.explanation).toContain("safety")
+    expect(recommendation.runeRecommendation.explanation).toContain("matchup")
+    expect(recommendation.compliance.allowed).toBe(true)
+  })
+
   test("omits the buy-now component when current gold cannot afford the next component", () => {
     const recommendation = recommendForManualPlanner({
       championId: "jinx",

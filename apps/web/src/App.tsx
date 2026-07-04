@@ -7,6 +7,7 @@ import {
   type ComponentItemId,
   type ManualPlannerInput,
   type PlannerItemRecommendation,
+  type PlannerRuneRecommendation,
   type RecommendationConfidence,
   type Role,
 } from "@workspace/recommender"
@@ -225,41 +226,47 @@ export function App() {
             {recommendation.explanation}
           </p>
 
-          <ItemBlock label="Target item" item={recommendation.targetItem} />
+          <RuneBlock recommendation={recommendation.runeRecommendation} />
 
-          {recommendation.alternativeItem ? (
-            <ItemBlock
-              label="Alternative"
-              item={recommendation.alternativeItem}
-            />
-          ) : null}
+          <div className="grid gap-3">
+            <h3 className="text-sm font-medium">In-game item plan</h3>
 
-          {recommendation.buyNow.component ? (
-            <ItemBlock
-              label="Buy-now component"
-              item={recommendation.buyNow.component}
-            />
-          ) : (
-            <div className="rounded-md border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
-              {recommendation.buyNow.reason}
+            <ItemBlock label="Target item" item={recommendation.targetItem} />
+
+            {recommendation.alternativeItem ? (
+              <ItemBlock
+                label="Alternative"
+                item={recommendation.alternativeItem}
+              />
+            ) : null}
+
+            {recommendation.buyNow.component ? (
+              <ItemBlock
+                label="Buy-now component"
+                item={recommendation.buyNow.component}
+              />
+            ) : (
+              <div className="rounded-md border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
+                {recommendation.buyNow.reason}
+              </div>
+            )}
+
+            <div className="grid gap-2">
+              <h3 className="text-sm font-medium">Full build plan</h3>
+              <ol className="grid gap-2">
+                {recommendation.fullBuild.map((item) => (
+                  <li
+                    key={item.itemId}
+                    className="rounded-md border border-border bg-background px-3 py-2"
+                  >
+                    <div className="text-sm font-medium">{item.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {item.reason}
+                    </div>
+                  </li>
+                ))}
+              </ol>
             </div>
-          )}
-
-          <div className="grid gap-2">
-            <h3 className="text-sm font-medium">Full build plan</h3>
-            <ol className="grid gap-2">
-              {recommendation.fullBuild.map((item) => (
-                <li
-                  key={item.itemId}
-                  className="rounded-md border border-border bg-background px-3 py-2"
-                >
-                  <div className="text-sm font-medium">{item.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {item.reason}
-                  </div>
-                </li>
-              ))}
-            </ol>
           </div>
 
           <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
@@ -367,6 +374,41 @@ function ComponentPicker({ selectedIds, onToggle }: ComponentPickerProps) {
 
 function isComponentOption(item: CatalogItem): item is ComponentOption {
   return item.buildStage === "component"
+}
+
+interface RuneBlockProps {
+  recommendation: PlannerRuneRecommendation
+}
+
+function RuneBlock({ recommendation }: RuneBlockProps) {
+  return (
+    <div className="grid gap-3 rounded-md border border-border bg-background p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="grid gap-1">
+          <h3 className="text-sm font-medium">Champion-select runes</h3>
+          <div className="text-xs text-muted-foreground">
+            {recommendation.primaryTree.name} primary,{" "}
+            {recommendation.secondaryTree.name} secondary
+          </div>
+        </div>
+        <Badge variant="secondary">{recommendation.keystone.name}</Badge>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        {recommendation.explanation}
+      </p>
+      <div className="flex flex-wrap gap-1">
+        {recommendation.keyMinorRunes.map((rune) => (
+          <Badge
+            key={rune.dataDragonId}
+            variant="secondary"
+            className="rounded bg-secondary px-2 py-0.5 text-xs text-secondary-foreground"
+          >
+            {rune.name}
+          </Badge>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 interface ItemBlockProps {
