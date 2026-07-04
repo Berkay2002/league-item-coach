@@ -118,6 +118,27 @@ describe("recommendation data version loading", () => {
     expect(result.version.patch.patchVersion).toBe("15.24")
   })
 
+  test("treats expired cached recommendation data as a cache miss", async () => {
+    const cache = createMemoryRecommendationVersionCache([
+      [
+        recommendationVersionCacheKey,
+        JSON.stringify({
+          cachedAt: "2026-07-01T00:00:00.000Z",
+          version: mockRecommendationVersion,
+        }),
+      ],
+    ])
+
+    const result = await loadRecommendationVersion({
+      cache,
+      cacheMaxAgeMs: 1,
+      source: createStaticRecommendationVersionSource(mockRecommendationVersion),
+    })
+
+    expect(result.status).toBe("ready")
+    expect(result.source).toBe("backend")
+  })
+
   test("rejects malformed Supabase recommendation version rows", () => {
     expect(() =>
       parseSupabaseRecommendationVersionResponse({
@@ -131,5 +152,11 @@ describe("recommendation data version loading", () => {
         baseline_rune_recommendations: [],
       })
     ).toThrow("item_id")
+  })
+
+  test("rejects array-shaped Supabase recommendation version responses", () => {
+    expect(() => parseSupabaseRecommendationVersionResponse([])).toThrow(
+      "must be an object"
+    )
   })
 })

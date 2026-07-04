@@ -27,12 +27,16 @@ import {
 import { Select } from "@workspace/ui/components/select"
 
 import { createAppRecommendationVersionSource } from "./recommendation-version-source"
-import { shouldUseSupabaseRecommendationData } from "./utils/supabase"
+import {
+  hasSupabaseConfig,
+  shouldUseSupabaseRecommendationData,
+} from "./utils/supabase"
 
 type CatalogItem =
   (typeof seededPlannerCatalog.items)[keyof typeof seededPlannerCatalog.items]
 type ComponentOption = Extract<CatalogItem, { buildStage: "component" }>
 type RecommendationDataState = "loading" | RecommendationVersionLoadResult
+const recommendationVersionCacheMaxAgeMs = 24 * 60 * 60 * 1000
 
 const championOptions = seededPlannerCatalog.championOptions
 const componentOptions: ComponentOption[] = Object.values(
@@ -103,6 +107,7 @@ export function App() {
       try {
         const result = await loadRecommendationVersion({
           cache: createStorageRecommendationVersionCache(window.localStorage),
+          cacheMaxAgeMs: recommendationVersionCacheMaxAgeMs,
           source: createAppRecommendationVersionSource(),
         })
 
@@ -338,7 +343,7 @@ export function App() {
           <div className="font-mono text-xs text-muted-foreground">
             {recommendationDataLabel(
               recommendationDataState,
-              shouldUseSupabaseRecommendationData
+              shouldUseSupabaseRecommendationData && hasSupabaseConfig
             )}
           </div>
 

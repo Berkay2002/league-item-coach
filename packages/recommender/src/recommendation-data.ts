@@ -130,6 +130,11 @@ export interface RecommendationVersionSource {
   loadActiveVersion: () => Promise<RecommendationVersion>
 }
 
+export interface RecommendationVersionCacheEntry {
+  cachedAt: string
+  version: RecommendationVersion
+}
+
 export interface BaselineRecommendationSelection {
   championId: ChampionId
   role: Role
@@ -189,14 +194,20 @@ export function createStorageRecommendationVersionCache(
 
 export async function loadRecommendationVersion({
   cache,
+  cacheMaxAgeMs,
   source,
   cacheKey = recommendationVersionCacheKey,
 }: {
   cache: RecommendationVersionCache
+  cacheMaxAgeMs?: number
   source: RecommendationVersionSource
   cacheKey?: string
 }): Promise<RecommendationVersionLoadResult> {
-  const cachedVersion = readCachedRecommendationVersion(cache, cacheKey)
+  const cachedVersion = readCachedRecommendationVersion(
+    cache,
+    cacheKey,
+    cacheMaxAgeMs
+  )
 
   if (cachedVersion) {
     return {
@@ -324,6 +335,24 @@ export function parseRecommendationVersion(value: unknown): RecommendationVersio
   return value as unknown as RecommendationVersion
 }
 
+export function parseRecommendationVersionCacheEntry(
+  value: unknown
+): RecommendationVersionCacheEntry {
+  if (!isRecord(value)) {
+    throw new Error("Recommendation version cache entry must be an object")
+  }
+
+  const cachedAt = value.cachedAt
+  if (typeof cachedAt !== "string") {
+    throw new Error("Recommendation version response missing cachedAt")
+  }
+
+  return {
+    cachedAt,
+    version: parseRecommendationVersion(value.version),
+  }
+}
+
 export function selectBaselineRecommendations(
   version: RecommendationVersion,
   selection: BaselineRecommendationSelection
@@ -344,7 +373,8 @@ export function selectBaselineRecommendations(
 
 function readCachedRecommendationVersion(
   cache: RecommendationVersionCache,
-  cacheKey: string
+  cacheKey: string,
+  cacheMaxAgeMs: number | undefined
 ): RecommendationVersion | undefined {
   let value: string | null
 
@@ -359,7 +389,14 @@ function readCachedRecommendationVersion(
   }
 
   try {
-    return parseRecommendationVersion(JSON.parse(value))
+    const parsed = JSON.parse(value) as unknown
+    const entry = parseCachedRecommendationVersionValue(parsed)
+
+    if (cacheMaxAgeMs !== undefined && isExpired(entry, cacheMaxAgeMs)) {
+      return undefined
+    }
+
+    return entry.version
   } catch {
     return undefined
   }
@@ -371,7 +408,12 @@ function writeCachedRecommendationVersion(
   version: RecommendationVersion
 ): void {
   try {
-    cache.set(cacheKey, JSON.stringify(version))
+    const cacheEntry = {
+      cachedAt: new Date().toISOString(),
+      version,
+    } satisfies RecommendationVersionCacheEntry
+
+    cache.set(cacheKey, JSON.stringify(cacheEntry))
   } catch {
     return
   }
@@ -386,7 +428,7 @@ function errorReason(error: unknown): string {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
+  return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
 function requireString(value: Record<string, unknown>, property: string): void {
@@ -516,4 +558,30 @@ function requireRow(
   }
 
   return value
+}
+
+function parseCachedRecommendationVersionValue(
+  value: unknown
+): RecommendationVersionCacheEntry {
+  try {
+    return parseRecommendationVersionCacheEntry(value)
+  } catch {
+    return {
+      cachedAt: new Date(0).toISOString(),
+      version: parseRecommendationVersion(value),
+    }
+  }
+}
+
+function isExpired(
+  entry: RecommendationVersionCacheEntry,
+  cacheMaxAgeMs: number
+): boolean {
+  const cachedAtMs = Date.parse(entry.cachedAt)
+
+  if (!Number.isFinite(cachedAtMs)) {
+    return true
+  }
+
+  return Date.now() - cachedAtMs > cacheMaxAgeMs
 }
