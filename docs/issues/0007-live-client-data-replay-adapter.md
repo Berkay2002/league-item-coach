@@ -6,6 +6,10 @@ Create a Live Client Data-shaped replay adapter for recommender fixtures.
 
 PRD: [League Item Coach MVP PRD](https://github.com/Berkay2002/league-item-coach/issues/13), source `docs/product/mvp-prd.md`
 
+## Goal
+
+Build a fixture-backed Live Client Data replay adapter that normalizes player list, item, score, level, gold, and game-state data into recommender input without requiring League to be running.
+
 ## Acceptance criteria
 
 - [ ] Fixture data represents Live Client Data player list, items, scores, levels, current gold, and game state.

@@ -6,6 +6,10 @@ Wire the Overwolf shell to the live/replay adapter and shared recommender.
 
 PRD: [League Item Coach MVP PRD](https://github.com/Berkay2002/league-item-coach/issues/13), source `docs/product/mvp-prd.md`
 
+## Goal
+
+Wire the Overwolf shell to normalized live/replay data and the shared recommender so it displays target item, buy-now component, confidence, and one short reason, verified with replay fixtures and compliance guards.
+
 ## Acceptance criteria
 
 - [ ] The Overwolf app consumes normalized live/replay adapter output.

@@ -6,6 +6,10 @@ Set up the project baseline, docs, local issue tracker, and compliance guardrail
 
 PRD: [League Item Coach MVP PRD](https://github.com/Berkay2002/league-item-coach/issues/13), source `docs/product/mvp-prd.md`
 
+## Goal
+
+Create the repo baseline docs, compliance guardrail, and local/GitHub issue workflow for the MVP, then verify with `bun run typecheck`, `bun run lint`, and `bun run build` passing.
+
 ## Acceptance criteria
 
 - [ ] Product docs are available under `docs/product` and linked from the README.

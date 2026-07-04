@@ -6,6 +6,10 @@ Document the Riot Match-V5 aggregation path for high-elo baseline tables.
 
 PRD: [League Item Coach MVP PRD](https://github.com/Berkay2002/league-item-coach/issues/13), source `docs/product/mvp-prd.md`
 
+## Goal
+
+Document the Match-V5 high-elo aggregation path from match collection through compact Supabase-compatible recommendation outputs, including API key boundaries and the fields needed for item/rune baselines.
+
 ## Acceptance criteria
 
 - [ ] The design explains how match IDs are collected by region and rank band.

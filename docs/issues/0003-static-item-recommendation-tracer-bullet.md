@@ -6,6 +6,10 @@ Implement the first deterministic item recommendation path and show it in the we
 
 PRD: [League Item Coach MVP PRD](https://github.com/Berkay2002/league-item-coach/issues/13), source `docs/product/mvp-prd.md`
 
+## Goal
+
+Implement one static team-comp item recommendation path that returns a target item, confidence, and explanation in the web planner, with fixture coverage and passing `bun run typecheck`, `bun run lint`, and `bun run build`.
+
 ## Acceptance criteria
 
 - [ ] The shared recommender package returns a target completed item for at least one static team-comp fixture.

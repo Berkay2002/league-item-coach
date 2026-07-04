@@ -6,6 +6,10 @@ Add the first Windows Overwolf shell with mocked recommendation output.
 
 PRD: [League Item Coach MVP PRD](https://github.com/Berkay2002/league-item-coach/issues/13), source `docs/product/mvp-prd.md`
 
+## Goal
+
+Create an Overwolf app workspace that can load in the Overwolf development environment and render compact mocked recommendation output without forbidden timer, cooldown, or action-dictating surfaces.
+
 ## Acceptance criteria
 
 - [ ] The monorepo contains an Overwolf app workspace.

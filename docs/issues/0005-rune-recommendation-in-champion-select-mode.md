@@ -6,6 +6,10 @@ Add compact pre-game rune recommendations for champion select.
 
 PRD: [League Item Coach MVP PRD](https://github.com/Berkay2002/league-item-coach/issues/13), source `docs/product/mvp-prd.md`
 
+## Goal
+
+Add champion-select rune recommendations that return primary tree, keystone, secondary tree, key minor runes, and a tradeoff explanation, verified by at least one rune fixture and the standard project checks.
+
 ## Acceptance criteria
 
 - [ ] The web planner has a champion-select mode or section for rune recommendations.
