@@ -18,14 +18,16 @@ export {
   type ManualPlannerRecommendation,
   type PlannerBuyNowRecommendation,
   type PlannerItemRecommendation,
-  type PlannerRuneRecommendation,
   type RecommendationConfidence,
   type Role,
+  type SeededChampion,
+  type SeededItem,
+} from "./manual-planner"
+export {
+  type PlannerRuneRecommendation,
   type RuneSelection,
   type RuneTreeId,
   type RuneTreeName,
   type RuneTreeSelection,
-  type SeededChampion,
-  type SeededItem,
   type SeededRunePage,
-} from "./manual-planner"
+} from "./manual-planner.runes"
