@@ -31,11 +31,14 @@ export interface PlannerRuneRecommendation extends SeededRunePage {
   explanation: string
 }
 
-export interface RuneRecommendationInput {
+export interface RunePageSelectionInput {
   championId: ChampionId
   championClass: ChampionClass
-  championName: string
   role: Role
+}
+
+export interface RunePageExplanationInput {
+  championName: string
   physicalThreats: number
   magicThreats: number
   tankCount: number
@@ -301,13 +304,19 @@ const fallbackRunePagesByClass = {
   },
 } as const satisfies Record<ChampionClass, SeededRunePage>
 
-export function chooseRuneRecommendation(
-  input: RuneRecommendationInput
-): PlannerRuneRecommendation {
-  const page =
+export function chooseSeededRunePage(
+  input: RunePageSelectionInput
+): SeededRunePage {
+  return (
     seededRunePagesByChampionRole[input.championId]?.[input.role] ??
     fallbackRunePagesByClass[input.championClass]
+  )
+}
 
+export function explainRunePage(
+  input: RunePageExplanationInput,
+  page: SeededRunePage
+): PlannerRuneRecommendation {
   return {
     ...page,
     explanation: runeExplanation(input, page),
@@ -315,7 +324,7 @@ export function chooseRuneRecommendation(
 }
 
 function runeExplanation(
-  input: RuneRecommendationInput,
+  input: RunePageExplanationInput,
   page: SeededRunePage
 ): string {
   if (input.hasHealing || input.physicalThreats > input.magicThreats) {

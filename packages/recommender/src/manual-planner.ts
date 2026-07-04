@@ -3,7 +3,8 @@ import {
   type RecommendationOutputComplianceResult,
 } from "./compliance"
 import {
-  chooseRuneRecommendation,
+  chooseSeededRunePage,
+  explainRunePage,
   type PlannerRuneRecommendation,
 } from "./manual-planner.runes"
 
@@ -377,16 +378,21 @@ export function recommendForManualPlanner(
     toRecommendationItem(itemId, fullBuildReason(itemId))
   )
   const buyNow = chooseBuyNowRecommendation(input, champion.class, targetItemId)
-  const runeRecommendation = chooseRuneRecommendation({
+  const runePage = chooseSeededRunePage({
     championId: input.championId,
     championClass: champion.class,
-    championName: champion.name,
     role: input.role,
-    physicalThreats: needs.physicalThreats,
-    magicThreats: needs.magicThreats,
-    tankCount: needs.tankCount,
-    hasHealing: needs.hasHealing,
   })
+  const runeRecommendation = explainRunePage(
+    {
+      championName: champion.name,
+      physicalThreats: needs.physicalThreats,
+      magicThreats: needs.magicThreats,
+      tankCount: needs.tankCount,
+      hasHealing: needs.hasHealing,
+    },
+    runePage
+  )
 
   const recommendationWithoutCompliance = {
     input,
