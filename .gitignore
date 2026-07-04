@@ -19,6 +19,9 @@ dist-ssr
 # turbo
 .turbo
 
+# supabase cli
+supabase/.temp/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

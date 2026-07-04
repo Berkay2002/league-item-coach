@@ -286,12 +286,42 @@ export function parseSupabaseRecommendationVersionResponse(
   requireString(value, "patch_version")
   requireString(value, "data_dragon_version")
   requireString(value, "imported_at")
-  requireArray(value, "item_tags")
-  requireArray(value, "champion_tags")
-  requireArray(value, "baseline_item_recommendations")
-  requireArray(value, "baseline_rune_recommendations")
+  requireArray(value, "item_tags").forEach((row) =>
+    requireSupabaseItemTagRow(row)
+  )
+  requireArray(value, "champion_tags").forEach((row) =>
+    requireSupabaseChampionTagRow(row)
+  )
+  requireArray(value, "baseline_item_recommendations").forEach((row) =>
+    requireSupabaseBaselineItemRecommendationRow(row)
+  )
+  requireArray(value, "baseline_rune_recommendations").forEach((row) =>
+    requireSupabaseBaselineRuneRecommendationRow(row)
+  )
 
   return value as unknown as SupabaseRecommendationVersionResponse
+}
+
+export function parseRecommendationVersion(value: unknown): RecommendationVersion {
+  if (!isRecord(value)) {
+    throw new Error("Recommendation version cache entry must be an object")
+  }
+
+  requireObject(value, "patch")
+  requireArray(value, "itemTags").forEach((row) =>
+    requireRecommendationItemTag(row)
+  )
+  requireArray(value, "championTags").forEach((row) =>
+    requireRecommendationChampionTag(row)
+  )
+  requireArray(value, "baselineItemRecommendations").forEach((row) =>
+    requireBaselineItemRecommendation(row)
+  )
+  requireArray(value, "baselineRuneRecommendations").forEach((row) =>
+    requireBaselineRuneRecommendation(row)
+  )
+
+  return value as unknown as RecommendationVersion
 }
 
 export function selectBaselineRecommendations(
@@ -329,7 +359,7 @@ function readCachedRecommendationVersion(
   }
 
   try {
-    return JSON.parse(value) as RecommendationVersion
+    return parseRecommendationVersion(JSON.parse(value))
   } catch {
     return undefined
   }
@@ -359,10 +389,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null
 }
 
-function requireString(
-  value: Record<string, unknown>,
-  property: string
-): void {
+function requireString(value: Record<string, unknown>, property: string): void {
   if (typeof value[property] !== "string") {
     throw new Error(`Recommendation version response missing ${property}`)
   }
@@ -371,8 +398,122 @@ function requireString(
 function requireArray(
   value: Record<string, unknown>,
   property: string
-): void {
+): unknown[] {
   if (!Array.isArray(value[property])) {
     throw new Error(`Recommendation version response missing ${property}`)
   }
+
+  return value[property]
+}
+
+function requireObject(
+  value: Record<string, unknown>,
+  property: string
+): Record<string, unknown> {
+  const nested = value[property]
+
+  if (!isRecord(nested)) {
+    throw new Error(`Recommendation version response missing ${property}`)
+  }
+
+  return nested
+}
+
+function requireSupabaseItemTagRow(value: unknown): void {
+  const row = requireRow(value, "item_tags")
+
+  requireString(row, "item_id")
+  requireString(row, "name")
+  requireString(row, "build_stage")
+  requireArray(row, "tags")
+  requireArray(row, "fits")
+}
+
+function requireSupabaseChampionTagRow(value: unknown): void {
+  const row = requireRow(value, "champion_tags")
+
+  requireString(row, "champion_id")
+  requireString(row, "name")
+  requireArray(row, "roles")
+  requireString(row, "class")
+  requireString(row, "damage_profile")
+  requireArray(row, "traits")
+}
+
+function requireSupabaseBaselineItemRecommendationRow(value: unknown): void {
+  const row = requireRow(value, "baseline_item_recommendations")
+
+  requireString(row, "champion_id")
+  requireString(row, "role")
+  requireString(row, "target_item_id")
+  requireArray(row, "full_build_item_ids")
+  requireString(row, "explanation")
+  requireString(row, "confidence")
+}
+
+function requireSupabaseBaselineRuneRecommendationRow(value: unknown): void {
+  const row = requireRow(value, "baseline_rune_recommendations")
+
+  requireString(row, "champion_id")
+  requireString(row, "role")
+  requireObject(row, "primary_tree")
+  requireObject(row, "keystone")
+  requireObject(row, "secondary_tree")
+  requireArray(row, "key_minor_runes")
+  requireString(row, "explanation")
+}
+
+function requireRecommendationItemTag(value: unknown): void {
+  const row = requireRow(value, "itemTags")
+
+  requireString(row, "itemId")
+  requireString(row, "name")
+  requireString(row, "buildStage")
+  requireArray(row, "tags")
+  requireArray(row, "fits")
+}
+
+function requireRecommendationChampionTag(value: unknown): void {
+  const row = requireRow(value, "championTags")
+
+  requireString(row, "championId")
+  requireString(row, "name")
+  requireArray(row, "roles")
+  requireString(row, "class")
+  requireString(row, "damageProfile")
+  requireArray(row, "traits")
+}
+
+function requireBaselineItemRecommendation(value: unknown): void {
+  const row = requireRow(value, "baselineItemRecommendations")
+
+  requireString(row, "championId")
+  requireString(row, "role")
+  requireString(row, "targetItemId")
+  requireArray(row, "fullBuildItemIds")
+  requireString(row, "explanation")
+  requireString(row, "confidence")
+}
+
+function requireBaselineRuneRecommendation(value: unknown): void {
+  const row = requireRow(value, "baselineRuneRecommendations")
+
+  requireString(row, "championId")
+  requireString(row, "role")
+  requireObject(row, "primaryTree")
+  requireObject(row, "keystone")
+  requireObject(row, "secondaryTree")
+  requireArray(row, "keyMinorRunes")
+  requireString(row, "explanation")
+}
+
+function requireRow(
+  value: unknown,
+  collectionName: string
+): Record<string, unknown> {
+  if (!isRecord(value)) {
+    throw new Error(`Recommendation version response has invalid ${collectionName}`)
+  }
+
+  return value
 }

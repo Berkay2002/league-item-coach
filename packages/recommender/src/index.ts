@@ -4,6 +4,7 @@ export {
   createStorageRecommendationVersionCache,
   loadRecommendationVersion,
   normalizeSupabaseRecommendationVersion,
+  parseRecommendationVersion,
   parseSupabaseRecommendationVersionResponse,
   recommendationVersionCacheKey,
   selectBaselineRecommendations,

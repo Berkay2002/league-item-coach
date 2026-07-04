@@ -73,14 +73,14 @@ drop policy if exists "public read recommendation versions" on recommendation_ve
 create policy "public read recommendation versions"
   on recommendation_versions
   for select
-  to anon
+  to anon, authenticated
   using (is_active);
 
 drop policy if exists "public read recommendation item tags" on recommendation_item_tags;
 create policy "public read recommendation item tags"
   on recommendation_item_tags
   for select
-  to anon
+  to anon, authenticated
   using (
     exists (
       select 1
@@ -93,7 +93,7 @@ drop policy if exists "public read recommendation champion tags" on recommendati
 create policy "public read recommendation champion tags"
   on recommendation_champion_tags
   for select
-  to anon
+  to anon, authenticated
   using (
     exists (
       select 1
@@ -106,7 +106,7 @@ drop policy if exists "public read baseline item recommendations" on baseline_it
 create policy "public read baseline item recommendations"
   on baseline_item_recommendations
   for select
-  to anon
+  to anon, authenticated
   using (
     exists (
       select 1
@@ -119,7 +119,7 @@ drop policy if exists "public read baseline rune recommendations" on baseline_ru
 create policy "public read baseline rune recommendations"
   on baseline_rune_recommendations
   for select
-  to anon
+  to anon, authenticated
   using (
     exists (
       select 1
@@ -128,11 +128,23 @@ create policy "public read baseline rune recommendations"
     )
   );
 
-grant select on recommendation_versions to anon;
-grant select on recommendation_item_tags to anon;
-grant select on recommendation_champion_tags to anon;
-grant select on baseline_item_recommendations to anon;
-grant select on baseline_rune_recommendations to anon;
+revoke all on table recommendation_versions from anon, authenticated;
+revoke all on table recommendation_item_tags from anon, authenticated;
+revoke all on table recommendation_champion_tags from anon, authenticated;
+revoke all on table baseline_item_recommendations from anon, authenticated;
+revoke all on table baseline_rune_recommendations from anon, authenticated;
+
+grant select on table recommendation_versions to anon, authenticated;
+grant select on table recommendation_item_tags to anon, authenticated;
+grant select on table recommendation_champion_tags to anon, authenticated;
+grant select on table baseline_item_recommendations to anon, authenticated;
+grant select on table baseline_rune_recommendations to anon, authenticated;
+
+grant select, insert, update, delete on table recommendation_versions to service_role;
+grant select, insert, update, delete on table recommendation_item_tags to service_role;
+grant select, insert, update, delete on table recommendation_champion_tags to service_role;
+grant select, insert, update, delete on table baseline_item_recommendations to service_role;
+grant select, insert, update, delete on table baseline_rune_recommendations to service_role;
 
 create or replace view active_recommendation_version
 with (security_invoker = true)
@@ -219,4 +231,6 @@ select
 from recommendation_versions v
 where v.is_active;
 
-grant select on active_recommendation_version to anon;
+revoke all on table active_recommendation_version from anon, authenticated;
+grant select on table active_recommendation_version to anon, authenticated;
+grant select on table active_recommendation_version to service_role;

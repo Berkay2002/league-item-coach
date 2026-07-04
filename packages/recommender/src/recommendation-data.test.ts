@@ -4,6 +4,7 @@ import {
   createMemoryRecommendationVersionCache,
   createStaticRecommendationVersionSource,
   loadRecommendationVersion,
+  parseSupabaseRecommendationVersionResponse,
   recommendationVersionCacheKey,
   selectBaselineRecommendations,
 } from "./recommendation-data"
@@ -100,5 +101,35 @@ describe("recommendation data version loading", () => {
       reason: "mock backend unavailable",
     })
     expect(cache.get(recommendationVersionCacheKey)).toBeNull()
+  })
+
+  test("ignores malformed cached recommendation data and loads from source", async () => {
+    const cache = createMemoryRecommendationVersionCache([
+      [recommendationVersionCacheKey, JSON.stringify({ patch: {} })],
+    ])
+
+    const result = await loadRecommendationVersion({
+      cache,
+      source: createStaticRecommendationVersionSource(mockRecommendationVersion),
+    })
+
+    expect(result.status).toBe("ready")
+    expect(result.source).toBe("backend")
+    expect(result.version.patch.patchVersion).toBe("15.24")
+  })
+
+  test("rejects malformed Supabase recommendation version rows", () => {
+    expect(() =>
+      parseSupabaseRecommendationVersionResponse({
+        id: "rec-version-15.24-seeded-v1",
+        patch_version: "15.24",
+        data_dragon_version: "15.24.1",
+        imported_at: "2026-07-04T00:00:00.000Z",
+        item_tags: [{}],
+        champion_tags: [],
+        baseline_item_recommendations: [],
+        baseline_rune_recommendations: [],
+      })
+    ).toThrow("item_id")
   })
 })
