@@ -10,8 +10,25 @@ Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all op
 - **Comment on an issue**: `gh issue comment <number> --body "..."`
 - **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
 - **Close**: `gh issue close <number> --comment "..."`
+- **Run local CodeRabbit pre-review when available on Windows**: `wsl -d Ubuntu -u berkay -- bash -lc 'export PATH="$HOME/.local/bin:$PATH"; cd /mnt/c/path/to/repo && cr review --agent --base main'`
+- **Create a PR for issue work**: `gh pr create --base main --head <branch> --reviewer "@copilot" --body "Closes #<issue-number>..."`
+- **Request Copilot review on an existing PR**: `gh pr edit <pr-number> --add-reviewer "@copilot"`
 
 Infer the repo from `git remote -v`; `gh` does this automatically when run inside this clone.
+
+## Pull request review agents
+
+Use pull requests for issue completion so GitHub can close linked issues on merge.
+
+- **Local CodeRabbit pre-review** should run before PR creation through the `$cr-review` skill when the WSL CodeRabbit CLI is available and authenticated. On Windows, Codex should use PowerShell for normal repo work and invoke WSL only for this CodeRabbit command from the repo path. Do not automate the VS Code extension as the primary agent workflow; it is an interactive UI surface. If no usable WSL distro or CLI is configured, state that local CodeRabbit pre-review was skipped.
+- If WSL Git reports broad false-positive changes from Windows line endings, set repo-local `core.autocrlf=true` from PowerShell and rerun the WSL status check before invoking CodeRabbit.
+- **CodeRabbit is pre-PR only.** Do not use CodeRabbit for PR reviews, do not manually summon it on PRs, do not wait for CodeRabbit PR feedback, and do not use PR-thread autofix workflows. If CodeRabbit PR automation is enabled elsewhere, disable it in CodeRabbit/GitHub settings rather than treating it as part of this repo workflow.
+- **GitHub Copilot** must be requested manually. Use `gh pr create --reviewer "@copilot"` when opening the PR, or `gh pr edit <pr-number> --add-reviewer "@copilot"` for an existing PR. If the CLI request fails, request Copilot from the PR Reviewers sidebar on GitHub.
+- Copilot reviews are comment-only. They do not count as required approvals and do not block merging by themselves.
+- Copilot PR review should use `.github/skills/code-review/SKILL.md`, wired through `.github/copilot-instructions.md`, as the strict code-quality review bar.
+- Copilot reads custom instructions from the PR base branch. Updates to `.github/copilot-instructions.md` or `.github/skills/**` take effect for future PRs after they are merged to `main`.
+- Copilot Memory is account/repository setting state. It is useful context, but repo-committed instructions are the source of truth for agents.
+- Address actionable Copilot comments before merge. If follow-up commits materially change the reviewed code, request Copilot re-review manually from the PR Reviewers menu.
 
 ## Pull requests as a triage surface
 
@@ -36,4 +53,3 @@ Used by `/wayfinder`. The map is a single issue labelled `wayfinder:map`, holdin
 - **Blocking**: use GitHub native issue dependencies where available. If unavailable, put `Blocked by: #<n>, #<n>` near the top of the issue body.
 - **Claim**: assign the issue to yourself with `gh issue edit <n> --add-assignee @me`.
 - **Resolve**: comment with the answer, close the issue, and append a context pointer to the map's Decisions-so-far.
-
