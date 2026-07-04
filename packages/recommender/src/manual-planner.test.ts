@@ -11,11 +11,11 @@ interface StaticCompFixture {
   name: string
   input: ManualPlannerInput
   expected: {
-    primaryItemId: string
-    primaryItemName: string
-    primaryBuildStage: "component" | "completed"
+    targetItemId: string
+    targetItemName: string
+    targetBuildStage: "component" | "completed"
     alternativeItemId: string
-    buyNowComponentId: string
+    buyNowComponentId?: string
     confidence: RecommendationConfidence
     explanationText: string
     reasonText: string
@@ -30,11 +30,13 @@ const staticHealingCompFixture = {
     role: "bot",
     allyChampionIds: ["lux", "amumu"],
     enemyChampionIds: ["aatrox", "soraka", "zed"],
+    currentGold: 900,
+    ownedComponentIds: [],
   },
   expected: {
-    primaryItemId: "mortal-reminder",
-    primaryItemName: "Mortal Reminder",
-    primaryBuildStage: "completed",
+    targetItemId: "mortal-reminder",
+    targetItemName: "Mortal Reminder",
+    targetBuildStage: "completed",
     alternativeItemId: "kraken-slayer",
     buyNowComponentId: "executioners-calling",
     confidence: "medium",
@@ -48,36 +50,53 @@ describe("manual planner recommendation", () => {
   test.each([staticHealingCompFixture])("$name", ({ input, expected }) => {
     const recommendation = recommendForManualPlanner(input)
 
-    expect(recommendation.primaryItem.itemId).toBe(expected.primaryItemId)
-    expect(recommendation.primaryItem.name).toBe(expected.primaryItemName)
-    expect(recommendation.primaryItem.buildStage).toBe(
-      expected.primaryBuildStage
-    )
-    expect(recommendation.primaryItem.reason).toContain(expected.reasonText)
-    expect(recommendation.primaryItem.tags).toContain(expected.tag)
+    expect(recommendation.targetItem.itemId).toBe(expected.targetItemId)
+    expect(recommendation.targetItem.name).toBe(expected.targetItemName)
+    expect(recommendation.targetItem.buildStage).toBe(expected.targetBuildStage)
+    expect(recommendation.targetItem.reason).toContain(expected.reasonText)
+    expect(recommendation.targetItem.tags).toContain(expected.tag)
     expect(recommendation.alternativeItem?.itemId).toBe(
       expected.alternativeItemId
     )
-    expect(recommendation.buyNowComponent?.itemId).toBe(
+    expect(recommendation.buyNow.component?.itemId).toBe(
       expected.buyNowComponentId
     )
-    expect(recommendation.buyNowComponent?.buildStage).toBe("component")
+    expect(recommendation.buyNow.component?.buildStage).toBe("component")
     expect(recommendation.confidence).toBe(expected.confidence)
     expect(recommendation.explanation).toContain(expected.explanationText)
     expect(recommendation.compliance.allowed).toBe(true)
   })
 
-  test("omits buy-now anti-heal when the mapped item is not a fitting component", () => {
+  test("omits the buy-now component when current gold cannot afford the next component", () => {
     const recommendation = recommendForManualPlanner({
-      championId: "lux",
-      role: "mid",
-      allyChampionIds: ["jinx"],
+      championId: "jinx",
+      role: "bot",
+      allyChampionIds: ["lux", "amumu"],
       enemyChampionIds: ["aatrox", "soraka"],
+      currentGold: 500,
+      ownedComponentIds: [],
     })
 
-    expect(recommendation.primaryItem.itemId).toBe("morellonomicon")
-    expect(recommendation.primaryItem.buildStage).toBe("completed")
-    expect(recommendation.buyNowComponent).toBeUndefined()
+    expect(recommendation.targetItem.itemId).toBe("mortal-reminder")
+    expect(recommendation.buyNow.component).toBeUndefined()
+    expect(recommendation.buyNow.reason).toContain("Save")
+    expect(recommendation.compliance.allowed).toBe(true)
+  })
+
+  test("skips already-owned components when choosing the buy-now component", () => {
+    const recommendation = recommendForManualPlanner({
+      championId: "jinx",
+      role: "bot",
+      allyChampionIds: ["lux", "amumu"],
+      enemyChampionIds: ["aatrox", "soraka"],
+      currentGold: 1500,
+      ownedComponentIds: ["executioners-calling"],
+    })
+
+    expect(recommendation.targetItem.itemId).toBe("mortal-reminder")
+    expect(recommendation.buyNow.component?.itemId).toBe("last-whisper")
+    expect(recommendation.buyNow.component?.buildStage).toBe("component")
+    expect(recommendation.buyNow.reason).toContain("already own")
     expect(recommendation.compliance.allowed).toBe(true)
   })
 
@@ -88,7 +107,7 @@ describe("manual planner recommendation", () => {
 
     expect(seededPlannerCatalog.champions.jinx.name).toBe("Jinx")
     expect(recommendation.input).toEqual(input)
-    expect(recommendation.primaryItem.name).toBe("Mortal Reminder")
+    expect(recommendation.targetItem.name).toBe("Mortal Reminder")
     expect(recommendation.alternativeItem?.name).toBe("Kraken Slayer")
     expect(recommendation.fullBuild.map((item) => item.itemId)).toContain(
       "infinity-edge"
@@ -105,8 +124,10 @@ describe("manual planner recommendation", () => {
         role: "bot",
         allyChampionIds: ["lux"],
         enemyChampionIds: ["malphite", "leona", "amumu"],
+        currentGold: 900,
+        ownedComponentIds: [],
       } satisfies ManualPlannerInput,
-      primaryItemId: "kraken-slayer",
+      targetItemId: "kraken-slayer",
       alternativeItemId: "lord-dominiks-regards",
       fullBuildItemId: "lord-dominiks-regards",
       learningRule: "multiple tanks",
@@ -118,8 +139,10 @@ describe("manual planner recommendation", () => {
         role: "top",
         allyChampionIds: ["jinx"],
         enemyChampionIds: ["ahri", "lux", "leona"],
+        currentGold: 900,
+        ownedComponentIds: [],
       } satisfies ManualPlannerInput,
-      primaryItemId: "sunfire-aegis",
+      targetItemId: "sunfire-aegis",
       alternativeItemId: "hollow-radiance",
       fullBuildItemId: "hollow-radiance",
       learningRule: "magic damage is the larger threat",
@@ -131,8 +154,10 @@ describe("manual planner recommendation", () => {
         role: "mid",
         allyChampionIds: ["jinx"],
         enemyChampionIds: ["ahri", "zed"],
+        currentGold: 900,
+        ownedComponentIds: [],
       } satisfies ManualPlannerInput,
-      primaryItemId: "liandrys-torment",
+      targetItemId: "liandrys-torment",
       alternativeItemId: undefined,
       fullBuildItemId: "zhonyas-hourglass",
       learningRule: "Start from the seeded baseline",
@@ -141,7 +166,7 @@ describe("manual planner recommendation", () => {
     "$name",
     ({
       input,
-      primaryItemId,
+      targetItemId,
       alternativeItemId,
       fullBuildItemId,
       learningRule,
@@ -149,7 +174,7 @@ describe("manual planner recommendation", () => {
       const recommendation = recommendForManualPlanner(input)
 
       expect(recommendation.input).toEqual(input)
-      expect(recommendation.primaryItem.itemId).toBe(primaryItemId)
+      expect(recommendation.targetItem.itemId).toBe(targetItemId)
       expect(recommendation.alternativeItem?.itemId).toBe(alternativeItemId)
       expect(recommendation.fullBuild.map((item) => item.itemId)).toContain(
         fullBuildItemId

@@ -4,6 +4,7 @@ import {
   recommendForManualPlanner,
   seededPlannerCatalog,
   type ChampionId,
+  type ComponentItemId,
   type ManualPlannerInput,
   type PlannerItemRecommendation,
   type RecommendationConfidence,
@@ -21,6 +22,9 @@ import {
 import { Select } from "@workspace/ui/components/select"
 
 const championOptions = seededPlannerCatalog.championOptions
+const componentOptions = Object.values(seededPlannerCatalog.items).filter(
+  (item) => item.buildStage === "component"
+)
 
 export function App() {
   const [championId, setChampionId] = useState<ChampionId>("jinx")
@@ -34,6 +38,10 @@ export function App() {
     "soraka",
     "zed",
   ])
+  const [currentGold, setCurrentGold] = useState(900)
+  const [ownedComponentIds, setOwnedComponentIds] = useState<ComponentItemId[]>(
+    []
+  )
 
   const plannerInput = useMemo<ManualPlannerInput>(
     () => ({
@@ -41,8 +49,17 @@ export function App() {
       role,
       allyChampionIds,
       enemyChampionIds,
+      currentGold,
+      ownedComponentIds,
     }),
-    [allyChampionIds, championId, enemyChampionIds, role]
+    [
+      allyChampionIds,
+      championId,
+      currentGold,
+      enemyChampionIds,
+      ownedComponentIds,
+      role,
+    ]
   )
   const recommendation = useMemo(
     () => recommendForManualPlanner(plannerInput),
@@ -66,6 +83,7 @@ export function App() {
     setEnemyChampionIds((selected) =>
       selected.filter((id) => id !== nextChampionId)
     )
+    setOwnedComponentIds([])
   }
 
   function toggleAlly(championIdToToggle: ChampionId) {
@@ -83,6 +101,14 @@ export function App() {
     )
     setEnemyChampionIds((selected) =>
       toggleChampionSelection(selected, championIdToToggle, 5)
+    )
+  }
+
+  function toggleOwnedComponent(componentIdToToggle: ComponentItemId) {
+    setOwnedComponentIds((selected) =>
+      selected.includes(componentIdToToggle)
+        ? selected.filter((id) => id !== componentIdToToggle)
+        : [...selected, componentIdToToggle]
     )
   }
 
@@ -152,6 +178,27 @@ export function App() {
               limitLabel="Select up to 5 enemies"
               onToggle={toggleEnemy}
             />
+
+            <div className="grid gap-4 sm:grid-cols-[minmax(0,220px)_1fr]">
+              <label className="grid gap-2 text-sm font-medium">
+                Current gold
+                <input
+                  type="number"
+                  min="0"
+                  step="50"
+                  value={currentGold}
+                  onChange={(event) =>
+                    setCurrentGold(Math.max(0, Number(event.target.value) || 0))
+                  }
+                  className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                />
+              </label>
+
+              <ComponentPicker
+                selectedIds={ownedComponentIds}
+                onToggle={toggleOwnedComponent}
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -162,7 +209,7 @@ export function App() {
                 Recommendation
               </p>
               <h2 className="text-xl font-semibold">
-                {recommendation.primaryItem.name}
+                {recommendation.targetItem.name}
               </h2>
             </div>
             <Badge variant="secondary">
@@ -174,7 +221,7 @@ export function App() {
             {recommendation.explanation}
           </p>
 
-          <ItemBlock label="Primary item" item={recommendation.primaryItem} />
+          <ItemBlock label="Target item" item={recommendation.targetItem} />
 
           {recommendation.alternativeItem ? (
             <ItemBlock
@@ -183,12 +230,16 @@ export function App() {
             />
           ) : null}
 
-          {recommendation.buyNowComponent ? (
+          {recommendation.buyNow.component ? (
             <ItemBlock
               label="Buy-now component"
-              item={recommendation.buyNowComponent}
+              item={recommendation.buyNow.component}
             />
-          ) : null}
+          ) : (
+            <div className="rounded-md border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
+              {recommendation.buyNow.reason}
+            </div>
+          )}
 
           <div className="grid gap-2">
             <h3 className="text-sm font-medium">Full build plan</h3>
@@ -217,7 +268,7 @@ export function App() {
           <div className="font-mono text-xs text-muted-foreground">
             Input: {recommendation.champion.name} {roleLabel(role)} with{" "}
             {recommendation.allies.length} allies and{" "}
-            {recommendation.enemies.length} enemies
+            {recommendation.enemies.length} enemies, {currentGold} gold
           </div>
         </Card>
       </div>
@@ -265,6 +316,43 @@ function ChampionPicker({
               onClick={() => onToggle(id)}
             >
               {champion.name}
+            </Button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+interface ComponentPickerProps {
+  selectedIds: readonly ComponentItemId[]
+  onToggle: (componentId: ComponentItemId) => void
+}
+
+function ComponentPicker({ selectedIds, onToggle }: ComponentPickerProps) {
+  return (
+    <div className="grid gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-sm font-medium">Owned components</h2>
+        <span className="text-xs text-muted-foreground">
+          Select components already bought
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {componentOptions.map((component) => {
+          const id = component.id as ComponentItemId
+          const selected = selectedIds.includes(id)
+
+          return (
+            <Button
+              key={id}
+              type="button"
+              size="sm"
+              variant={selected ? "default" : "outline"}
+              aria-pressed={selected}
+              onClick={() => onToggle(id)}
+            >
+              {component.name}
             </Button>
           )
         })}

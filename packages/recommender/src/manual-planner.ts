@@ -201,6 +201,13 @@ const seededItemCatalog = {
     tags: ["anti-tank", "penetration", "crit"],
     fits: ["marksman"],
   },
+  "last-whisper": {
+    id: "last-whisper",
+    name: "Last Whisper",
+    buildStage: "component",
+    tags: ["penetration", "damage"],
+    fits: ["assassin", "marksman"],
+  },
   morellonomicon: {
     id: "morellonomicon",
     name: "Morellonomicon",
@@ -247,6 +254,11 @@ const seededItemCatalog = {
 
 export type ChampionId = keyof typeof seededChampionCatalog
 export type ItemId = keyof typeof seededItemCatalog
+export type ComponentItemId = {
+  [K in ItemId]: (typeof seededItemCatalog)[K]["buildStage"] extends "component"
+    ? K
+    : never
+}[ItemId]
 type CatalogChampion = (typeof seededChampionCatalog)[ChampionId]
 
 export interface ManualPlannerInput {
@@ -254,6 +266,8 @@ export interface ManualPlannerInput {
   role: Role
   allyChampionIds: readonly ChampionId[]
   enemyChampionIds: readonly ChampionId[]
+  currentGold: number
+  ownedComponentIds: readonly ComponentItemId[]
 }
 
 export interface PlannerItemRecommendation {
@@ -264,6 +278,11 @@ export interface PlannerItemRecommendation {
   tags: readonly ItemTag[]
 }
 
+export interface PlannerBuyNowRecommendation {
+  component?: PlannerItemRecommendation
+  reason: string
+}
+
 export type RecommendationConfidence = "low" | "medium"
 
 export interface ManualPlannerRecommendation {
@@ -272,9 +291,9 @@ export interface ManualPlannerRecommendation {
   role: Role
   allies: readonly CatalogChampion[]
   enemies: readonly CatalogChampion[]
-  primaryItem: PlannerItemRecommendation
+  targetItem: PlannerItemRecommendation
   alternativeItem?: PlannerItemRecommendation
-  buyNowComponent?: PlannerItemRecommendation
+  buyNow: PlannerBuyNowRecommendation
   fullBuild: readonly PlannerItemRecommendation[]
   confidence: RecommendationConfidence
   explanation: string
@@ -300,15 +319,6 @@ const baselineItemByClass = {
   tank: "sunfire-aegis",
 } as const satisfies Record<ChampionClass, ItemId>
 
-const antiHealItemByClass = {
-  assassin: "executioners-calling",
-  enchanter: "morellonomicon",
-  fighter: "executioners-calling",
-  mage: "morellonomicon",
-  marksman: "executioners-calling",
-  tank: "executioners-calling",
-} as const satisfies Record<ChampionClass, ItemId>
-
 const completedAntiHealItemByClass = {
   assassin: "mortal-reminder",
   enchanter: "morellonomicon",
@@ -317,6 +327,17 @@ const completedAntiHealItemByClass = {
   marksman: "mortal-reminder",
   tank: "thornmail",
 } as const satisfies Record<ChampionClass, ItemId>
+
+const componentGoldCost = {
+  "executioners-calling": 800,
+  "last-whisper": 1450,
+} as const satisfies Record<ComponentItemId, number>
+
+const targetComponentIdsByItemId: Partial<
+  Record<ItemId, readonly ComponentItemId[]>
+> = {
+  "mortal-reminder": ["executioners-calling", "last-whisper"],
+}
 
 const antiTankItemByClass = {
   assassin: "black-cleaver",
@@ -334,17 +355,17 @@ export function recommendForManualPlanner(
   const allies = input.allyChampionIds.map((id) => seededChampionCatalog[id])
   const enemies = input.enemyChampionIds.map((id) => seededChampionCatalog[id])
   const needs = summarizeEnemyNeeds(enemies)
-  const primaryItemId = choosePrimaryItemId(champion.class, needs)
+  const targetItemId = choosePrimaryItemId(champion.class, needs)
   const alternativeItemId = chooseAlternativeItemId(
     champion.class,
-    primaryItemId,
+    targetItemId,
     needs
   )
-  const fullBuildIds = chooseFullBuildIds(champion.class, primaryItemId, needs)
+  const fullBuildIds = chooseFullBuildIds(champion.class, targetItemId, needs)
 
-  const primaryItem = toRecommendationItem(
-    primaryItemId,
-    primaryReason(champion, primaryItemId, needs)
+  const targetItem = toRecommendationItem(
+    targetItemId,
+    primaryReason(champion, targetItemId, needs)
   )
   const alternativeItem = alternativeItemId
     ? toRecommendationItem(alternativeItemId, alternativeReason(needs))
@@ -352,13 +373,7 @@ export function recommendForManualPlanner(
   const fullBuild = fullBuildIds.map((itemId) =>
     toRecommendationItem(itemId, fullBuildReason(itemId))
   )
-  const buyNowItemId = chooseBuyNowComponentItemId(champion.class, needs)
-  const buyNowComponent = buyNowItemId
-    ? toRecommendationItem(
-        buyNowItemId,
-        "Add anti-heal when the enemy team has repeat healing."
-      )
-    : undefined
+  const buyNow = chooseBuyNowRecommendation(input, champion.class, targetItemId)
 
   const recommendationWithoutCompliance = {
     input,
@@ -366,12 +381,12 @@ export function recommendForManualPlanner(
     role: input.role,
     allies,
     enemies,
-    primaryItem,
+    targetItem,
     alternativeItem,
-    buyNowComponent,
+    buyNow,
     fullBuild,
     confidence: confidenceForNeeds(needs),
-    explanation: explanationForRecommendation(champion, primaryItem, needs),
+    explanation: explanationForRecommendation(champion, targetItem, needs),
     learningRule: learningRule(needs),
   }
 
@@ -472,22 +487,65 @@ function differentItem(
   return itemId === currentItemId ? undefined : itemId
 }
 
-function chooseBuyNowComponentItemId(
+function chooseBuyNowRecommendation(
+  input: ManualPlannerInput,
   championClass: ChampionClass,
-  needs: EnemyNeeds
-): ItemId | undefined {
-  if (!needs.hasHealing) {
-    return undefined
+  targetItemId: ItemId
+): PlannerBuyNowRecommendation {
+  const targetItem = seededItemCatalog[targetItemId]
+  const componentIds = targetComponentIdsByItemId[targetItemId] ?? []
+  const ownedComponentIds = new Set(input.ownedComponentIds)
+
+  if (componentIds.length === 0) {
+    return {
+      reason: `No seeded component path is available for ${targetItem.name}.`,
+    }
   }
 
-  const itemId = antiHealItemByClass[championClass]
-  const item = seededItemCatalog[itemId]
+  const unownedComponentIds = componentIds.filter(
+    (itemId) => !ownedComponentIds.has(itemId)
+  )
+  const fittingUnownedComponentIds = unownedComponentIds.filter((itemId) =>
+    hasFit(itemId, championClass)
+  )
+  const componentId = fittingUnownedComponentIds
+    .filter((itemId) => componentGoldCost[itemId] <= input.currentGold)
+    .at(0)
 
-  if (item.buildStage !== "component" || !hasFit(itemId, championClass)) {
-    return undefined
+  if (componentId) {
+    const component = toRecommendationItem(
+      componentId,
+      `Buy ${seededItemCatalog[componentId].name} now because it builds toward ${targetItem.name}.`
+    )
+
+    if (input.ownedComponentIds.length > 0) {
+      return {
+        component,
+        reason: `You already own ${formatItemList(input.ownedComponentIds)}, so buy ${component.name} next for ${targetItem.name}.`,
+      }
+    }
+
+    return {
+      component,
+      reason: `Buy ${component.name} now for ${targetItem.name}.`,
+    }
   }
 
-  return itemId
+  if (unownedComponentIds.length === 0) {
+    return {
+      reason: `You already own the seeded components for ${targetItem.name}.`,
+    }
+  }
+
+  if (fittingUnownedComponentIds.length === 0) {
+    return {
+      reason: `No fitting seeded component is available for ${targetItem.name}.`,
+    }
+  }
+
+  return {
+    reason: `Save for ${seededItemCatalog[fittingUnownedComponentIds[0]].name} to keep building toward ${targetItem.name}.`,
+  }
 }
 
 function chooseFullBuildIds(
@@ -594,6 +652,10 @@ function hasFit(itemId: ItemId, championClass: ChampionClass): boolean {
   return (seededItemCatalog[itemId].fits as readonly string[]).includes(
     championClass
   )
+}
+
+function formatItemList(itemIds: readonly ItemId[]): string {
+  return itemIds.map((itemId) => seededItemCatalog[itemId].name).join(", ")
 }
 
 function learningRule(needs: EnemyNeeds): string {
