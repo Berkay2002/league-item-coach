@@ -59,11 +59,13 @@ docs: update MVP issue plan
 chore: configure engineering issue workflow
 ```
 
-PRs should link the relevant GitHub issue, summarize the behavior change, list verification commands run, and include screenshots for visible UI changes.
+Issue implementation work should happen on a feature branch and land through a pull request. PRs should link the relevant GitHub issue with a closing keyword, summarize the behavior change, list verification commands run, and include screenshots for visible UI changes.
 
 ## Agent-Specific Instructions
 
 Issues and PRDs live in GitHub Issues. Use `gh` for tracker operations. External PRs are not a triage surface.
+
+Use PRs for issue completion so linked GitHub issues auto-close on merge. Do not treat local commits on a feature branch as issue completion unless the user explicitly asks to skip the PR path.
 
 Read:
 
@@ -72,4 +74,3 @@ Read:
 - `docs/agents/domain.md`
 
 Before implementing, use the linked PRD issue and the issue body as the scope boundary.
-
