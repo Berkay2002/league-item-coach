@@ -1,7 +1,10 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import {
+  createStorageRecommendationVersionCache,
+  loadRecommendationVersion,
   recommendForManualPlanner,
+  selectBaselineRecommendations,
   seededPlannerCatalog,
   type ChampionId,
   type ComponentItemId,
@@ -9,6 +12,7 @@ import {
   type PlannerItemRecommendation,
   type PlannerRuneRecommendation,
   type RecommendationConfidence,
+  type RecommendationVersionLoadResult,
   type Role,
 } from "@workspace/recommender"
 import { Badge } from "@workspace/ui/components/badge"
@@ -22,9 +26,17 @@ import {
 } from "@workspace/ui/components/card"
 import { Select } from "@workspace/ui/components/select"
 
+import { createAppRecommendationVersionSource } from "./recommendation-version-source"
+import {
+  hasSupabaseConfig,
+  shouldUseSupabaseRecommendationData,
+} from "./utils/supabase"
+
 type CatalogItem =
   (typeof seededPlannerCatalog.items)[keyof typeof seededPlannerCatalog.items]
 type ComponentOption = Extract<CatalogItem, { buildStage: "component" }>
+type RecommendationDataState = "loading" | RecommendationVersionLoadResult
+const recommendationVersionCacheMaxAgeMs = 24 * 60 * 60 * 1000
 
 const championOptions = seededPlannerCatalog.championOptions
 const componentOptions: ComponentOption[] = Object.values(
@@ -32,6 +44,8 @@ const componentOptions: ComponentOption[] = Object.values(
 ).filter(isComponentOption)
 
 export function App() {
+  const [recommendationDataState, setRecommendationDataState] =
+    useState<RecommendationDataState>("loading")
   const [championId, setChampionId] = useState<ChampionId>("jinx")
   const [role, setRole] = useState<Role>("bot")
   const [allyChampionIds, setAllyChampionIds] = useState<ChampionId[]>([
@@ -70,8 +84,52 @@ export function App() {
     () => recommendForManualPlanner(plannerInput),
     [plannerInput]
   )
+  const versionedBaseline = useMemo(() => {
+    if (
+      recommendationDataState === "loading" ||
+      recommendationDataState.status !== "ready"
+    ) {
+      return undefined
+    }
+
+    return selectBaselineRecommendations(recommendationDataState.version, {
+      championId,
+      role,
+    })
+  }, [championId, recommendationDataState, role])
   const selectedChampion = seededPlannerCatalog.champions[championId]
   const selectedChampionRoleOptions = selectedChampion.roles
+
+  useEffect(() => {
+    let mounted = true
+
+    async function loadRecommendationData() {
+      try {
+        const result = await loadRecommendationVersion({
+          cache: createStorageRecommendationVersionCache(window.localStorage),
+          cacheMaxAgeMs: recommendationVersionCacheMaxAgeMs,
+          source: createAppRecommendationVersionSource(),
+        })
+
+        if (mounted) {
+          setRecommendationDataState(result)
+        }
+      } catch {
+        if (mounted) {
+          setRecommendationDataState({
+            status: "unavailable",
+            reason: "recommendation data failed to load",
+          })
+        }
+      }
+    }
+
+    void loadRecommendationData()
+
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   function changeChampion(nextChampionId: ChampionId) {
     const nextChampion = seededPlannerCatalog.champions[nextChampionId]
@@ -281,6 +339,19 @@ export function App() {
             {recommendation.allies.length} allies and{" "}
             {recommendation.enemies.length} enemies, {currentGold} gold
           </div>
+
+          <div className="font-mono text-xs text-muted-foreground">
+            {recommendationDataLabel(
+              recommendationDataState,
+              shouldUseSupabaseRecommendationData && hasSupabaseConfig
+            )}
+          </div>
+
+          {versionedBaseline ? (
+            <div className="font-mono text-xs text-muted-foreground">
+              {versionedBaselineLabel(versionedBaseline)}
+            </div>
+          ) : null}
         </Card>
       </div>
     </main>
@@ -466,4 +537,37 @@ function roleLabel(role: Role): string {
 
 function confidenceLabel(confidence: RecommendationConfidence): string {
   return `${confidence[0].toUpperCase() + confidence.slice(1)} confidence`
+}
+
+function recommendationDataLabel(
+  state: RecommendationDataState,
+  supabaseSourceEnabled: boolean
+): string {
+  if (state === "loading") {
+    return "Recommendation data: loading"
+  }
+
+  if (state.status === "unavailable") {
+    return `Recommendation data: unavailable (${state.reason})`
+  }
+
+  const source =
+    state.source === "cache"
+      ? "local cache"
+      : supabaseSourceEnabled
+        ? "Supabase"
+        : "local mock"
+
+  return `Recommendation data: patch ${state.version.patch.patchVersion} from ${source}`
+}
+
+function versionedBaselineLabel(
+  baseline: NonNullable<
+    ReturnType<typeof selectBaselineRecommendations>
+  >
+): string {
+  const item = baseline.itemRecommendation?.targetItemId ?? "no item baseline"
+  const rune = baseline.runeRecommendation?.keystone.name ?? "no rune baseline"
+
+  return `Versioned baseline: ${item}, ${rune}`
 }
