@@ -34,6 +34,7 @@ export interface SeededItem {
   id: string
   name: string
   buildStage: "component" | "completed"
+  goldCost?: number
   tags: readonly ItemTag[]
   fits: readonly ChampionClass[]
 }
@@ -156,6 +157,7 @@ const seededItemCatalog = {
     id: "executioners-calling",
     name: "Executioner's Calling",
     buildStage: "component",
+    goldCost: 800,
     tags: ["anti-heal", "damage"],
     fits: ["fighter", "marksman"],
   },
@@ -205,6 +207,7 @@ const seededItemCatalog = {
     id: "last-whisper",
     name: "Last Whisper",
     buildStage: "component",
+    goldCost: 1450,
     tags: ["penetration", "damage"],
     fits: ["assassin", "marksman"],
   },
@@ -328,11 +331,6 @@ const completedAntiHealItemByClass = {
   tank: "thornmail",
 } as const satisfies Record<ChampionClass, ItemId>
 
-const componentGoldCost = {
-  "executioners-calling": 800,
-  "last-whisper": 1450,
-} as const satisfies Record<ComponentItemId, number>
-
 const targetComponentIdsByItemId: Partial<
   Record<ItemId, readonly ComponentItemId[]>
 > = {
@@ -355,7 +353,7 @@ export function recommendForManualPlanner(
   const allies = input.allyChampionIds.map((id) => seededChampionCatalog[id])
   const enemies = input.enemyChampionIds.map((id) => seededChampionCatalog[id])
   const needs = summarizeEnemyNeeds(enemies)
-  const targetItemId = choosePrimaryItemId(champion.class, needs)
+  const targetItemId = chooseTargetItemId(champion.class, needs)
   const alternativeItemId = chooseAlternativeItemId(
     champion.class,
     targetItemId,
@@ -365,7 +363,7 @@ export function recommendForManualPlanner(
 
   const targetItem = toRecommendationItem(
     targetItemId,
-    primaryReason(champion, targetItemId, needs)
+    targetReason(champion, targetItemId, needs)
   )
   const alternativeItem = alternativeItemId
     ? toRecommendationItem(alternativeItemId, alternativeReason(needs))
@@ -440,7 +438,7 @@ function summarizeEnemyNeeds(enemies: readonly CatalogChampion[]): EnemyNeeds {
   )
 }
 
-function choosePrimaryItemId(
+function chooseTargetItemId(
   championClass: ChampionClass,
   needs: EnemyNeeds
 ): ItemId {
@@ -453,28 +451,28 @@ function choosePrimaryItemId(
 
 function chooseAlternativeItemId(
   championClass: ChampionClass,
-  primaryItemId: ItemId,
+  targetItemId: ItemId,
   needs: EnemyNeeds
 ): ItemId | undefined {
   const baselineItemId = baselineItemByClass[championClass]
 
-  if (primaryItemId !== baselineItemId) {
+  if (targetItemId !== baselineItemId) {
     return baselineItemId
   }
 
   if (needs.tankCount >= 2) {
-    return differentItem(antiTankItemByClass[championClass], primaryItemId)
+    return differentItem(antiTankItemByClass[championClass], targetItemId)
   }
 
   if (needs.magicThreats > needs.physicalThreats) {
     return differentItem(
       championClass === "tank" ? "hollow-radiance" : "banshees-veil",
-      primaryItemId
+      targetItemId
     )
   }
 
   if (needs.physicalThreats > needs.magicThreats && championClass === "mage") {
-    return differentItem("zhonyas-hourglass", primaryItemId)
+    return differentItem("zhonyas-hourglass", targetItemId)
   }
 
   return undefined
@@ -505,12 +503,15 @@ function chooseBuyNowRecommendation(
   const unownedComponentIds = componentIds.filter(
     (itemId) => !ownedComponentIds.has(itemId)
   )
+  const ownedTargetComponentIds = componentIds.filter((itemId) =>
+    ownedComponentIds.has(itemId)
+  )
   const fittingUnownedComponentIds = unownedComponentIds.filter((itemId) =>
     hasFit(itemId, championClass)
   )
-  const componentId = fittingUnownedComponentIds
-    .filter((itemId) => componentGoldCost[itemId] <= input.currentGold)
-    .at(0)
+  const componentId = fittingUnownedComponentIds.find(
+    (itemId) => componentGoldCost(itemId) <= input.currentGold
+  )
 
   if (componentId) {
     const component = toRecommendationItem(
@@ -518,10 +519,10 @@ function chooseBuyNowRecommendation(
       `Buy ${seededItemCatalog[componentId].name} now because it builds toward ${targetItem.name}.`
     )
 
-    if (input.ownedComponentIds.length > 0) {
+    if (ownedTargetComponentIds.length > 0) {
       return {
         component,
-        reason: `You already own ${formatItemList(input.ownedComponentIds)}, so buy ${component.name} next for ${targetItem.name}.`,
+        reason: `You already own ${formatItemList(ownedTargetComponentIds)}, so buy ${component.name} next for ${targetItem.name}.`,
       }
     }
 
@@ -550,10 +551,10 @@ function chooseBuyNowRecommendation(
 
 function chooseFullBuildIds(
   championClass: ChampionClass,
-  primaryItemId: ItemId,
+  targetItemId: ItemId,
   needs: EnemyNeeds
 ): ItemId[] {
-  const ids: ItemId[] = [primaryItemId, baselineItemByClass[championClass]]
+  const ids: ItemId[] = [targetItemId, baselineItemByClass[championClass]]
 
   if (championClass === "marksman") {
     ids.push("infinity-edge")
@@ -597,7 +598,7 @@ function toRecommendationItem(
   }
 }
 
-function primaryReason(
+function targetReason(
   champion: CatalogChampion,
   itemId: ItemId,
   needs: EnemyNeeds
@@ -654,6 +655,10 @@ function hasFit(itemId: ItemId, championClass: ChampionClass): boolean {
   )
 }
 
+function componentGoldCost(itemId: ComponentItemId): number {
+  return seededItemCatalog[itemId].goldCost ?? 0
+}
+
 function formatItemList(itemIds: readonly ItemId[]): string {
   return itemIds.map((itemId) => seededItemCatalog[itemId].name).join(", ")
 }
@@ -690,12 +695,12 @@ function confidenceForNeeds(
 
 function explanationForRecommendation(
   champion: CatalogChampion,
-  primaryItem: PlannerItemRecommendation,
+  targetItem: PlannerItemRecommendation,
   needs: EnemyNeeds
 ): string {
   if (needs.hasHealing) {
-    return `${champion.name} should target ${primaryItem.name} because enemy healing is the clearest team-comp need.`
+    return `${champion.name} should target ${targetItem.name} because enemy healing is the clearest team-comp need.`
   }
 
-  return `${champion.name} should target ${primaryItem.name} from the seeded ${primaryItem.tags[0]} baseline.`
+  return `${champion.name} should target ${targetItem.name} from the seeded ${targetItem.tags[0]} baseline.`
 }

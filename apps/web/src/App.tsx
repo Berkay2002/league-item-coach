@@ -21,10 +21,14 @@ import {
 } from "@workspace/ui/components/card"
 import { Select } from "@workspace/ui/components/select"
 
+type CatalogItem =
+  (typeof seededPlannerCatalog.items)[keyof typeof seededPlannerCatalog.items]
+type ComponentOption = Extract<CatalogItem, { buildStage: "component" }>
+
 const championOptions = seededPlannerCatalog.championOptions
-const componentOptions = Object.values(seededPlannerCatalog.items).filter(
-  (item) => item.buildStage === "component"
-)
+const componentOptions: ComponentOption[] = Object.values(
+  seededPlannerCatalog.items
+).filter(isComponentOption)
 
 export function App() {
   const [championId, setChampionId] = useState<ChampionId>("jinx")
@@ -340,7 +344,7 @@ function ComponentPicker({ selectedIds, onToggle }: ComponentPickerProps) {
       </div>
       <div className="flex flex-wrap gap-2">
         {componentOptions.map((component) => {
-          const id = component.id as ComponentItemId
+          const id = component.id
           const selected = selectedIds.includes(id)
 
           return (
@@ -359,6 +363,10 @@ function ComponentPicker({ selectedIds, onToggle }: ComponentPickerProps) {
       </div>
     </div>
   )
+}
+
+function isComponentOption(item: CatalogItem): item is ComponentOption {
+  return item.buildStage === "component"
 }
 
 interface ItemBlockProps {
