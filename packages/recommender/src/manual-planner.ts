@@ -33,6 +33,7 @@ export interface SeededChampion {
 export interface SeededItem {
   id: string
   name: string
+  buildStage: "component" | "completed"
   tags: readonly ItemTag[]
   fits: readonly ChampionClass[]
 }
@@ -140,84 +141,105 @@ const seededItemCatalog = {
   "banshees-veil": {
     id: "banshees-veil",
     name: "Banshee's Veil",
+    buildStage: "completed",
     tags: ["magic-resist", "survivability"],
     fits: ["mage"],
   },
   "black-cleaver": {
     id: "black-cleaver",
     name: "Black Cleaver",
+    buildStage: "completed",
     tags: ["damage", "anti-tank", "survivability"],
     fits: ["fighter"],
   },
   "executioners-calling": {
     id: "executioners-calling",
     name: "Executioner's Calling",
+    buildStage: "component",
     tags: ["anti-heal", "damage"],
     fits: ["fighter", "marksman"],
   },
   "hollow-radiance": {
     id: "hollow-radiance",
     name: "Hollow Radiance",
+    buildStage: "completed",
     tags: ["magic-resist", "survivability"],
     fits: ["tank"],
   },
   "imperial-mandate": {
     id: "imperial-mandate",
     name: "Imperial Mandate",
+    buildStage: "completed",
     tags: ["support", "damage"],
     fits: ["enchanter", "mage"],
   },
   "infinity-edge": {
     id: "infinity-edge",
     name: "Infinity Edge",
+    buildStage: "completed",
     tags: ["crit", "damage"],
     fits: ["marksman"],
   },
   "kraken-slayer": {
     id: "kraken-slayer",
     name: "Kraken Slayer",
+    buildStage: "completed",
     tags: ["damage"],
     fits: ["marksman"],
   },
   "liandrys-torment": {
     id: "liandrys-torment",
     name: "Liandry's Torment",
+    buildStage: "completed",
     tags: ["anti-tank", "damage"],
     fits: ["mage"],
   },
   "lord-dominiks-regards": {
     id: "lord-dominiks-regards",
     name: "Lord Dominik's Regards",
+    buildStage: "completed",
     tags: ["anti-tank", "penetration", "crit"],
     fits: ["marksman"],
   },
   morellonomicon: {
     id: "morellonomicon",
     name: "Morellonomicon",
+    buildStage: "completed",
     tags: ["anti-heal", "damage"],
-    fits: ["mage"],
+    fits: ["enchanter", "mage"],
   },
   "mortal-reminder": {
     id: "mortal-reminder",
     name: "Mortal Reminder",
+    buildStage: "completed",
     tags: ["anti-heal", "penetration", "crit"],
-    fits: ["marksman"],
+    fits: ["assassin", "marksman"],
   },
   "steraks-gage": {
     id: "steraks-gage",
     name: "Sterak's Gage",
+    buildStage: "completed",
     tags: ["survivability", "damage"],
     fits: ["fighter"],
   },
   "sunfire-aegis": {
     id: "sunfire-aegis",
     name: "Sunfire Aegis",
+    buildStage: "completed",
     tags: ["armor", "survivability"],
     fits: ["tank"],
+  },
+  thornmail: {
+    id: "thornmail",
+    name: "Thornmail",
+    buildStage: "completed",
+    tags: ["anti-heal", "armor", "survivability"],
+    fits: ["fighter", "tank"],
   },
   "zhonyas-hourglass": {
     id: "zhonyas-hourglass",
     name: "Zhonya's Hourglass",
+    buildStage: "completed",
     tags: ["armor", "survivability"],
     fits: ["mage"],
   },
@@ -237,9 +259,12 @@ export interface ManualPlannerInput {
 export interface PlannerItemRecommendation {
   itemId: ItemId
   name: string
+  buildStage: SeededItem["buildStage"]
   reason: string
   tags: readonly ItemTag[]
 }
+
+export type RecommendationConfidence = "low" | "medium"
 
 export interface ManualPlannerRecommendation {
   input: ManualPlannerInput
@@ -251,7 +276,7 @@ export interface ManualPlannerRecommendation {
   alternativeItem?: PlannerItemRecommendation
   buyNowComponent?: PlannerItemRecommendation
   fullBuild: readonly PlannerItemRecommendation[]
-  confidence: "seeded"
+  confidence: RecommendationConfidence
   explanation: string
   learningRule: string
   compliance: RecommendationOutputComplianceResult
@@ -284,6 +309,15 @@ const antiHealItemByClass = {
   tank: "executioners-calling",
 } as const satisfies Record<ChampionClass, ItemId>
 
+const completedAntiHealItemByClass = {
+  assassin: "mortal-reminder",
+  enchanter: "morellonomicon",
+  fighter: "thornmail",
+  mage: "morellonomicon",
+  marksman: "mortal-reminder",
+  tank: "thornmail",
+} as const satisfies Record<ChampionClass, ItemId>
+
 const antiTankItemByClass = {
   assassin: "black-cleaver",
   enchanter: "liandrys-torment",
@@ -300,21 +334,21 @@ export function recommendForManualPlanner(
   const allies = input.allyChampionIds.map((id) => seededChampionCatalog[id])
   const enemies = input.enemyChampionIds.map((id) => seededChampionCatalog[id])
   const needs = summarizeEnemyNeeds(enemies)
-  const primaryItemId = baselineItemByClass[champion.class]
-  const alternativeItemId = chooseAlternativeItemId(champion.class, needs)
+  const primaryItemId = choosePrimaryItemId(champion.class, needs)
+  const alternativeItemId = chooseAlternativeItemId(
+    champion.class,
+    primaryItemId,
+    needs
+  )
   const fullBuildIds = chooseFullBuildIds(champion.class, primaryItemId, needs)
 
   const primaryItem = toRecommendationItem(
     primaryItemId,
-    primaryReason(champion, needs)
+    primaryReason(champion, primaryItemId, needs)
   )
-  const alternativeItem =
-    alternativeItemId === primaryItemId
-      ? undefined
-      : toRecommendationItem(
-          alternativeItemId,
-          alternativeReason(alternativeItemId, needs)
-        )
+  const alternativeItem = alternativeItemId
+    ? toRecommendationItem(alternativeItemId, alternativeReason(needs))
+    : undefined
   const fullBuild = fullBuildIds.map((itemId) =>
     toRecommendationItem(itemId, fullBuildReason(itemId))
   )
@@ -336,8 +370,8 @@ export function recommendForManualPlanner(
     alternativeItem,
     buyNowComponent,
     fullBuild,
-    confidence: "seeded" as const,
-    explanation: `${champion.name} gets a stable ${primaryItem.name} plan from the seeded ${input.role} catalog.`,
+    confidence: confidenceForNeeds(needs),
+    explanation: explanationForRecommendation(champion, primaryItem, needs),
     learningRule: learningRule(needs),
   }
 
@@ -391,27 +425,51 @@ function summarizeEnemyNeeds(enemies: readonly CatalogChampion[]): EnemyNeeds {
   )
 }
 
-function chooseAlternativeItemId(
+function choosePrimaryItemId(
   championClass: ChampionClass,
   needs: EnemyNeeds
 ): ItemId {
   if (needs.hasHealing) {
-    return antiHealItemByClass[championClass]
-  }
-
-  if (needs.tankCount >= 2) {
-    return antiTankItemByClass[championClass]
-  }
-
-  if (needs.magicThreats > needs.physicalThreats) {
-    return championClass === "tank" ? "hollow-radiance" : "banshees-veil"
-  }
-
-  if (needs.physicalThreats > needs.magicThreats && championClass === "mage") {
-    return "zhonyas-hourglass"
+    return completedAntiHealItemByClass[championClass]
   }
 
   return baselineItemByClass[championClass]
+}
+
+function chooseAlternativeItemId(
+  championClass: ChampionClass,
+  primaryItemId: ItemId,
+  needs: EnemyNeeds
+): ItemId | undefined {
+  const baselineItemId = baselineItemByClass[championClass]
+
+  if (primaryItemId !== baselineItemId) {
+    return baselineItemId
+  }
+
+  if (needs.tankCount >= 2) {
+    return differentItem(antiTankItemByClass[championClass], primaryItemId)
+  }
+
+  if (needs.magicThreats > needs.physicalThreats) {
+    return differentItem(
+      championClass === "tank" ? "hollow-radiance" : "banshees-veil",
+      primaryItemId
+    )
+  }
+
+  if (needs.physicalThreats > needs.magicThreats && championClass === "mage") {
+    return differentItem("zhonyas-hourglass", primaryItemId)
+  }
+
+  return undefined
+}
+
+function differentItem(
+  itemId: ItemId,
+  currentItemId: ItemId
+): ItemId | undefined {
+  return itemId === currentItemId ? undefined : itemId
 }
 
 function chooseFullBuildIds(
@@ -419,7 +477,7 @@ function chooseFullBuildIds(
   primaryItemId: ItemId,
   needs: EnemyNeeds
 ): ItemId[] {
-  const ids: ItemId[] = [primaryItemId]
+  const ids: ItemId[] = [primaryItemId, baselineItemByClass[championClass]]
 
   if (championClass === "marksman") {
     ids.push("infinity-edge")
@@ -438,7 +496,7 @@ function chooseFullBuildIds(
   }
 
   if (needs.hasHealing) {
-    ids.push(antiHealItemByClass[championClass])
+    ids.push(completedAntiHealItemByClass[championClass])
   }
 
   if (needs.tankCount >= 2) {
@@ -457,37 +515,34 @@ function toRecommendationItem(
   return {
     itemId,
     name: item.name,
+    buildStage: item.buildStage,
     reason,
     tags: item.tags,
   }
 }
 
-function primaryReason(champion: CatalogChampion, needs: EnemyNeeds): string {
+function primaryReason(
+  champion: CatalogChampion,
+  itemId: ItemId,
+  needs: EnemyNeeds
+): string {
   if (needs.hasHealing) {
-    return `${champion.name} still starts from the baseline item, then answers enemy healing with the next slot.`
-  }
-
-  if (needs.tankCount >= 2) {
-    return `${champion.name} starts from the baseline item before adding anti-tank damage.`
+    return `${champion.name} targets ${seededItemCatalog[itemId].name} because enemy healing is the clearest team-comp need.`
   }
 
   return `${champion.name} starts from a seeded baseline item for the selected role.`
 }
 
-function alternativeReason(itemId: ItemId, needs: EnemyNeeds): string {
-  if (hasTag(itemId, "anti-heal")) {
-    return "Use this when enemy healing is the clearest adjustment."
+function alternativeReason(needs: EnemyNeeds): string {
+  if (needs.hasHealing) {
+    return "Use this when core damage is more important than answering healing first."
   }
 
   if (needs.tankCount >= 2) {
-    return "Use this when durable enemies are the main adjustment."
+    return "Use this when baseline damage is more important than answering tanks first."
   }
 
-  if (hasTag(itemId, "magic-resist")) {
-    return "Use this when magic damage is the larger threat."
-  }
-
-  return "Use this when the enemy profile changes the baseline plan."
+  return "Use this when the baseline plan matters more than the defensive adjustment."
 }
 
 function fullBuildReason(itemId: ItemId): string {
@@ -535,4 +590,26 @@ function learningRule(needs: EnemyNeeds): string {
   }
 
   return "Start from the seeded baseline, then adjust the next slot for the clearest enemy need."
+}
+
+function confidenceForNeeds(
+  needs: EnemyNeeds
+): ManualPlannerRecommendation["confidence"] {
+  if (needs.hasHealing) {
+    return "medium"
+  }
+
+  return "low"
+}
+
+function explanationForRecommendation(
+  champion: CatalogChampion,
+  primaryItem: PlannerItemRecommendation,
+  needs: EnemyNeeds
+): string {
+  if (needs.hasHealing) {
+    return `${champion.name} should target ${primaryItem.name} because enemy healing is the clearest team-comp need.`
+  }
+
+  return `${champion.name} should target ${primaryItem.name} from the seeded ${primaryItem.tags[0]} baseline.`
 }

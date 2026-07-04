@@ -6,6 +6,7 @@ import {
   type ChampionId,
   type ManualPlannerInput,
   type PlannerItemRecommendation,
+  type RecommendationConfidence,
   type Role,
 } from "@workspace/recommender"
 import { Badge } from "@workspace/ui/components/badge"
@@ -164,7 +165,9 @@ export function App() {
                 {recommendation.primaryItem.name}
               </h2>
             </div>
-            <Badge variant="secondary">{recommendation.confidence}</Badge>
+            <Badge variant="secondary">
+              {confidenceLabel(recommendation.confidence)}
+            </Badge>
           </div>
 
           <p className="text-sm text-muted-foreground">
@@ -321,4 +324,8 @@ function roleLabel(role: Role): string {
   }
 
   return role[0].toUpperCase() + role.slice(1)
+}
+
+function confidenceLabel(confidence: RecommendationConfidence): string {
+  return `${confidence[0].toUpperCase() + confidence.slice(1)} confidence`
 }
