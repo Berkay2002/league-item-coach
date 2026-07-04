@@ -61,11 +61,21 @@ chore: configure engineering issue workflow
 
 Issue implementation work should happen on a feature branch and land through a pull request. PRs should link the relevant GitHub issue with a closing keyword, summarize the behavior change, list verification commands run, and include screenshots for visible UI changes.
 
+PR review workflow:
+
+- CodeRabbit is configured as an automatic PR reviewer. Do not manually summon it unless the repository configuration changes.
+- GitHub Copilot code review must be requested manually. Prefer `gh pr create --reviewer "@copilot"` when opening the PR, or `gh pr edit <pr-number> --add-reviewer "@copilot"` for an existing PR.
+- If the CLI reviewer request fails, use the GitHub web UI: open the PR, find Copilot under Reviewers, and click Request.
+- Copilot reviews are comment-only and do not count as required approvals. Treat Copilot and CodeRabbit feedback as review input: address actionable findings, explain intentional non-changes, rerun verification, and push follow-up commits.
+- After pushing meaningful follow-up changes, request a Copilot re-review manually from the PR Reviewers menu.
+
 ## Agent-Specific Instructions
 
 Issues and PRDs live in GitHub Issues. Use `gh` for tracker operations. External PRs are not a triage surface.
 
 Use PRs for issue completion so linked GitHub issues auto-close on merge. Do not treat local commits on a feature branch as issue completion unless the user explicitly asks to skip the PR path.
+
+After creating a PR, confirm CodeRabbit has been allowed to run automatically and manually request GitHub Copilot review. For existing PRs, run `gh pr edit <pr-number> --add-reviewer "@copilot"` or request Copilot from the GitHub Reviewers sidebar.
 
 Read:
 

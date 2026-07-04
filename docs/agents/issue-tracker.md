@@ -10,8 +10,19 @@ Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all op
 - **Comment on an issue**: `gh issue comment <number> --body "..."`
 - **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
 - **Close**: `gh issue close <number> --comment "..."`
+- **Create a PR for issue work**: `gh pr create --base main --head <branch> --reviewer "@copilot" --body "Closes #<issue-number>..."`
+- **Request Copilot review on an existing PR**: `gh pr edit <pr-number> --add-reviewer "@copilot"`
 
 Infer the repo from `git remote -v`; `gh` does this automatically when run inside this clone.
+
+## Pull request review agents
+
+Use pull requests for issue completion so GitHub can close linked issues on merge.
+
+- **CodeRabbit** runs automatically on PRs. Do not add a manual invocation step unless repository configuration changes.
+- **GitHub Copilot** must be requested manually. Use `gh pr create --reviewer "@copilot"` when opening the PR, or `gh pr edit <pr-number> --add-reviewer "@copilot"` for an existing PR. If the CLI request fails, request Copilot from the PR Reviewers sidebar on GitHub.
+- Copilot reviews are comment-only. They do not count as required approvals and do not block merging by themselves.
+- Address actionable CodeRabbit and Copilot comments before merge. If follow-up commits materially change the reviewed code, request Copilot re-review manually from the PR Reviewers menu.
 
 ## Pull requests as a triage surface
 
@@ -36,4 +47,3 @@ Used by `/wayfinder`. The map is a single issue labelled `wayfinder:map`, holdin
 - **Blocking**: use GitHub native issue dependencies where available. If unavailable, put `Blocked by: #<n>, #<n>` near the top of the issue body.
 - **Claim**: assign the issue to yourself with `gh issue edit <n> --add-assignee @me`.
 - **Resolve**: comment with the answer, close the issue, and append a context pointer to the map's Decisions-so-far.
-
