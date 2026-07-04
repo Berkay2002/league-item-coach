@@ -10,6 +10,7 @@ Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all op
 - **Comment on an issue**: `gh issue comment <number> --body "..."`
 - **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
 - **Close**: `gh issue close <number> --comment "..."`
+- **Run local CodeRabbit pre-review when available on Windows**: `wsl -d <distro> sh -lc 'cd /mnt/c/path/to/repo && cr --base main'`
 - **Create a PR for issue work**: `gh pr create --base main --head <branch> --reviewer "@copilot" --body "Closes #<issue-number>..."`
 - **Request Copilot review on an existing PR**: `gh pr edit <pr-number> --add-reviewer "@copilot"`
 
@@ -19,6 +20,7 @@ Infer the repo from `git remote -v`; `gh` does this automatically when run insid
 
 Use pull requests for issue completion so GitHub can close linked issues on merge.
 
+- **Local CodeRabbit pre-review** should run before PR creation when the WSL CodeRabbit CLI is available and authenticated. On Windows, Codex should invoke it through WSL from the repo path. Do not automate the VS Code extension as the primary agent workflow; it is an interactive UI surface. If no usable WSL distro or CLI is configured, state that local CodeRabbit pre-review was skipped.
 - **CodeRabbit** runs automatically on PRs. Do not add a manual invocation step unless repository configuration changes.
 - **GitHub Copilot** must be requested manually. Use `gh pr create --reviewer "@copilot"` when opening the PR, or `gh pr edit <pr-number> --add-reviewer "@copilot"` for an existing PR. If the CLI request fails, request Copilot from the PR Reviewers sidebar on GitHub.
 - Copilot reviews are comment-only. They do not count as required approvals and do not block merging by themselves.

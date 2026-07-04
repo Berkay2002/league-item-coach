@@ -63,6 +63,7 @@ Issue implementation work should happen on a feature branch and land through a p
 
 PR review workflow:
 
+- Before opening a PR, run a local CodeRabbit review when the WSL CodeRabbit CLI is available. On Windows this requires a real WSL distro with `cr` or `coderabbit` installed and authenticated; do not try to automate the VS Code extension from Codex. If the CLI is unavailable, note that local CodeRabbit pre-review was skipped.
 - CodeRabbit is configured as an automatic PR reviewer. Do not manually summon it unless the repository configuration changes.
 - GitHub Copilot code review must be requested manually. Prefer `gh pr create --reviewer "@copilot"` when opening the PR, or `gh pr edit <pr-number> --add-reviewer "@copilot"` for an existing PR.
 - If the CLI reviewer request fails, use the GitHub web UI: open the PR, find Copilot under Reviewers, and click Request.
