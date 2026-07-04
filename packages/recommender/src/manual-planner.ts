@@ -509,7 +509,10 @@ function chooseBuyNowRecommendation(
   const fittingUnownedComponentIds = unownedComponentIds.filter((itemId) =>
     hasFit(itemId, championClass)
   )
-  const componentId = fittingUnownedComponentIds.find(
+  const sortedFittingUnownedComponentIds = [...fittingUnownedComponentIds].sort(
+    (left, right) => componentGoldCost(left) - componentGoldCost(right)
+  )
+  const componentId = sortedFittingUnownedComponentIds.find(
     (itemId) => componentGoldCost(itemId) <= input.currentGold
   )
 
@@ -538,14 +541,14 @@ function chooseBuyNowRecommendation(
     }
   }
 
-  if (fittingUnownedComponentIds.length === 0) {
+  if (sortedFittingUnownedComponentIds.length === 0) {
     return {
       reason: `No fitting seeded component is available for ${targetItem.name}.`,
     }
   }
 
   return {
-    reason: `Save for ${seededItemCatalog[fittingUnownedComponentIds[0]].name} to keep building toward ${targetItem.name}.`,
+    reason: `Save for ${seededItemCatalog[sortedFittingUnownedComponentIds[0]].name} to keep building toward ${targetItem.name}.`,
   }
 }
 
@@ -656,7 +659,7 @@ function hasFit(itemId: ItemId, championClass: ChampionClass): boolean {
 }
 
 function componentGoldCost(itemId: ComponentItemId): number {
-  return seededItemCatalog[itemId].goldCost ?? 0
+  return seededItemCatalog[itemId].goldCost ?? Number.POSITIVE_INFINITY
 }
 
 function formatItemList(itemIds: readonly ItemId[]): string {
