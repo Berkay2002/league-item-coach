@@ -2,6 +2,11 @@ import {
   validateRecommendationOutput,
   type RecommendationOutputComplianceResult,
 } from "./compliance"
+import {
+  chooseSeededRunePage,
+  explainRunePage,
+  type PlannerRuneRecommendation,
+} from "./manual-planner.runes"
 
 export type Role = "top" | "jungle" | "mid" | "bot" | "support"
 
@@ -297,6 +302,7 @@ export interface ManualPlannerRecommendation {
   targetItem: PlannerItemRecommendation
   alternativeItem?: PlannerItemRecommendation
   buyNow: PlannerBuyNowRecommendation
+  runeRecommendation: PlannerRuneRecommendation
   fullBuild: readonly PlannerItemRecommendation[]
   confidence: RecommendationConfidence
   explanation: string
@@ -372,6 +378,21 @@ export function recommendForManualPlanner(
     toRecommendationItem(itemId, fullBuildReason(itemId))
   )
   const buyNow = chooseBuyNowRecommendation(input, champion.class, targetItemId)
+  const runePage = chooseSeededRunePage({
+    championId: input.championId,
+    championClass: champion.class,
+    role: input.role,
+  })
+  const runeRecommendation = explainRunePage(
+    {
+      championName: champion.name,
+      physicalThreats: needs.physicalThreats,
+      magicThreats: needs.magicThreats,
+      tankCount: needs.tankCount,
+      hasHealing: needs.hasHealing,
+    },
+    runePage
+  )
 
   const recommendationWithoutCompliance = {
     input,
@@ -382,6 +403,7 @@ export function recommendForManualPlanner(
     targetItem,
     alternativeItem,
     buyNow,
+    runeRecommendation,
     fullBuild,
     confidence: confidenceForNeeds(needs),
     explanation: explanationForRecommendation(champion, targetItem, needs),
