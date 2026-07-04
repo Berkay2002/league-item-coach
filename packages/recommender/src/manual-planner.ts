@@ -1,5 +1,4 @@
 import {
-  assertRecommendationOutputAllowed,
   validateRecommendationOutput,
   type RecommendationOutputComplianceResult,
 } from "./compliance"
@@ -226,6 +225,7 @@ const seededItemCatalog = {
 
 export type ChampionId = keyof typeof seededChampionCatalog
 export type ItemId = keyof typeof seededItemCatalog
+type CatalogChampion = (typeof seededChampionCatalog)[ChampionId]
 
 export interface ManualPlannerInput {
   championId: ChampionId
@@ -243,10 +243,10 @@ export interface PlannerItemRecommendation {
 
 export interface ManualPlannerRecommendation {
   input: ManualPlannerInput
-  champion: (typeof seededChampionCatalog)[ChampionId]
+  champion: CatalogChampion
   role: Role
-  allies: readonly (typeof seededChampionCatalog)[ChampionId][]
-  enemies: readonly (typeof seededChampionCatalog)[ChampionId][]
+  allies: readonly CatalogChampion[]
+  enemies: readonly CatalogChampion[]
   primaryItem: PlannerItemRecommendation
   alternativeItem?: PlannerItemRecommendation
   buyNowComponent?: PlannerItemRecommendation
@@ -262,7 +262,7 @@ export const seededPlannerCatalog = {
   champions: seededChampionCatalog,
   championOptions: Object.values(
     seededChampionCatalog
-  ) as readonly (typeof seededChampionCatalog)[ChampionId][],
+  ) as readonly CatalogChampion[],
   items: seededItemCatalog,
 }
 
@@ -341,11 +341,21 @@ export function recommendForManualPlanner(
     learningRule: learningRule(needs),
   }
 
-  assertRecommendationOutputAllowed(recommendationWithoutCompliance)
+  const compliance = validateRecommendationOutput(
+    recommendationWithoutCompliance
+  )
+
+  if (!compliance.allowed) {
+    const summary = compliance.violations
+      .map((violation) => `${violation.category} at ${violation.path}`)
+      .join(", ")
+
+    throw new Error(`Forbidden recommendation output: ${summary}`)
+  }
 
   return {
     ...recommendationWithoutCompliance,
-    compliance: validateRecommendationOutput(recommendationWithoutCompliance),
+    compliance,
   }
 }
 
@@ -356,9 +366,7 @@ interface EnemyNeeds {
   hasHealing: boolean
 }
 
-function summarizeEnemyNeeds(
-  enemies: readonly (typeof seededChampionCatalog)[ChampionId][]
-): EnemyNeeds {
+function summarizeEnemyNeeds(enemies: readonly CatalogChampion[]): EnemyNeeds {
   return enemies.reduce<EnemyNeeds>(
     (needs, enemy) => ({
       physicalThreats:
@@ -430,9 +438,7 @@ function chooseFullBuildIds(
   }
 
   if (needs.hasHealing) {
-    ids.push(
-      championClass === "marksman" ? "mortal-reminder" : "morellonomicon"
-    )
+    ids.push(antiHealItemByClass[championClass])
   }
 
   if (needs.tankCount >= 2) {
@@ -456,10 +462,7 @@ function toRecommendationItem(
   }
 }
 
-function primaryReason(
-  champion: (typeof seededChampionCatalog)[ChampionId],
-  needs: EnemyNeeds
-): string {
+function primaryReason(champion: CatalogChampion, needs: EnemyNeeds): string {
   if (needs.hasHealing) {
     return `${champion.name} still starts from the baseline item, then answers enemy healing with the next slot.`
   }
@@ -504,7 +507,7 @@ function fullBuildReason(itemId: ItemId): string {
 }
 
 function hasTrait(
-  champion: (typeof seededChampionCatalog)[ChampionId],
+  champion: CatalogChampion,
   trait: SeededChampion["traits"][number]
 ): boolean {
   return (champion.traits as readonly string[]).includes(trait)

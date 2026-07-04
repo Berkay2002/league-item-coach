@@ -20,7 +20,6 @@ import {
 import { Select } from "@workspace/ui/components/select"
 
 const championOptions = seededPlannerCatalog.championOptions
-const roleOptions = seededPlannerCatalog.roles
 
 export function App() {
   const [championId, setChampionId] = useState<ChampionId>("jinx")
@@ -48,9 +47,18 @@ export function App() {
     () => recommendForManualPlanner(plannerInput),
     [plannerInput]
   )
+  const selectedChampion = seededPlannerCatalog.champions[championId]
+  const selectedChampionRoleOptions = selectedChampion.roles
 
   function changeChampion(nextChampionId: ChampionId) {
+    const nextChampion = seededPlannerCatalog.champions[nextChampionId]
+
     setChampionId(nextChampionId)
+    setRole((currentRole) =>
+      (nextChampion.roles as readonly Role[]).includes(currentRole)
+        ? currentRole
+        : nextChampion.roles[0]
+    )
     setAllyChampionIds((selected) =>
       selected.filter((id) => id !== nextChampionId)
     )
@@ -60,12 +68,18 @@ export function App() {
   }
 
   function toggleAlly(championIdToToggle: ChampionId) {
+    setEnemyChampionIds((selected) =>
+      selected.filter((id) => id !== championIdToToggle)
+    )
     setAllyChampionIds((selected) =>
       toggleChampionSelection(selected, championIdToToggle, 4)
     )
   }
 
   function toggleEnemy(championIdToToggle: ChampionId) {
+    setAllyChampionIds((selected) =>
+      selected.filter((id) => id !== championIdToToggle)
+    )
     setEnemyChampionIds((selected) =>
       toggleChampionSelection(selected, championIdToToggle, 5)
     )
@@ -111,7 +125,7 @@ export function App() {
                   value={role}
                   onChange={(event) => setRole(event.target.value as Role)}
                 >
-                  {roleOptions.map((roleOption) => (
+                  {selectedChampionRoleOptions.map((roleOption) => (
                     <option key={roleOption} value={roleOption}>
                       {roleLabel(roleOption)}
                     </option>
@@ -123,6 +137,7 @@ export function App() {
             <ChampionPicker
               championId={championId}
               selectedIds={allyChampionIds}
+              excludedIds={enemyChampionIds}
               title="Allies"
               limitLabel="Select up to 4 allies"
               onToggle={toggleAlly}
@@ -131,6 +146,7 @@ export function App() {
             <ChampionPicker
               championId={championId}
               selectedIds={enemyChampionIds}
+              excludedIds={allyChampionIds}
               title="Enemies"
               limitLabel="Select up to 5 enemies"
               onToggle={toggleEnemy}
@@ -209,6 +225,7 @@ export function App() {
 interface ChampionPickerProps {
   championId: ChampionId
   selectedIds: readonly ChampionId[]
+  excludedIds?: readonly ChampionId[]
   title: string
   limitLabel: string
   onToggle: (championId: ChampionId) => void
@@ -217,6 +234,7 @@ interface ChampionPickerProps {
 function ChampionPicker({
   championId,
   selectedIds,
+  excludedIds = [],
   title,
   limitLabel,
   onToggle,
@@ -231,7 +249,7 @@ function ChampionPicker({
         {championOptions.map((champion) => {
           const id = champion.id
           const selected = selectedIds.includes(id)
-          const disabled = id === championId
+          const disabled = id === championId || excludedIds.includes(id)
 
           return (
             <Button
@@ -282,7 +300,7 @@ function ItemBlock({ label, item }: ItemBlockProps) {
 }
 
 function toggleChampionSelection(
-  selectedIds: readonly ChampionId[],
+  selectedIds: ChampionId[],
   championId: ChampionId,
   maxSelected: number
 ): ChampionId[] {
@@ -291,7 +309,7 @@ function toggleChampionSelection(
   }
 
   if (selectedIds.length >= maxSelected) {
-    return [...selectedIds]
+    return selectedIds
   }
 
   return [...selectedIds, championId]
