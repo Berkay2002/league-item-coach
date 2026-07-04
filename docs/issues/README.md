@@ -1,6 +1,6 @@
 # Local Issues
 
-This folder is the local issue tracker for the project until a hosted tracker is added.
+This folder mirrors the GitHub implementation issues for local planning and agent context. GitHub Issues remain the source of truth.
 
 Each issue is a vertical tracer-bullet slice linked to the PRD it came from. Keep issue bodies concise and do not duplicate the full PRD. A completed issue should be demoable or verifiable on its own, not just a horizontal layer.
 

@@ -9,6 +9,7 @@ The product direction is Windows-first with an Overwolf overlay, plus a web app 
 - Vision PRD: `docs/product/vision-prd.md`
 - MVP PRD: `docs/product/mvp-prd.md`
 - Local issues: `docs/issues/`
+- MVP compliance guardrails: `docs/compliance/mvp-guardrails.md`
 
 ## Stack
 
@@ -19,6 +20,7 @@ The product direction is Windows-first with an Overwolf overlay, plus a web app 
 - shadcn/ui with the `b7DMx6v9s` preset
 - Supabase planned for backend recommendation tables
 - Overwolf planned for the Windows overlay app
+- `@workspace/recommender` for deterministic recommendation logic and compliance guards
 
 ## Commands
 

@@ -1,0 +1,23 @@
+{
+  "name": "@workspace/recommender",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint",
+    "test": "bun test",
+    "format": "prettier --write \"**/*.{ts}\"",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10",
+    "eslint": "^10",
+    "typescript": "~6",
+    "typescript-eslint": "^8"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./compliance": "./src/compliance.ts"
+  }
+}
