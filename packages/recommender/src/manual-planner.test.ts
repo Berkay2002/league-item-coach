@@ -15,6 +15,7 @@ interface StaticCompFixture {
     primaryItemName: string
     primaryBuildStage: "component" | "completed"
     alternativeItemId: string
+    buyNowComponentId: string
     confidence: RecommendationConfidence
     explanationText: string
     reasonText: string
@@ -35,6 +36,7 @@ const staticHealingCompFixture = {
     primaryItemName: "Mortal Reminder",
     primaryBuildStage: "completed",
     alternativeItemId: "kraken-slayer",
+    buyNowComponentId: "executioners-calling",
     confidence: "medium",
     explanationText: "enemy healing",
     reasonText: "enemy healing",
@@ -56,8 +58,26 @@ describe("manual planner recommendation", () => {
     expect(recommendation.alternativeItem?.itemId).toBe(
       expected.alternativeItemId
     )
+    expect(recommendation.buyNowComponent?.itemId).toBe(
+      expected.buyNowComponentId
+    )
+    expect(recommendation.buyNowComponent?.buildStage).toBe("component")
     expect(recommendation.confidence).toBe(expected.confidence)
     expect(recommendation.explanation).toContain(expected.explanationText)
+    expect(recommendation.compliance.allowed).toBe(true)
+  })
+
+  test("omits buy-now anti-heal when the mapped item is not a fitting component", () => {
+    const recommendation = recommendForManualPlanner({
+      championId: "lux",
+      role: "mid",
+      allyChampionIds: ["jinx"],
+      enemyChampionIds: ["aatrox", "soraka"],
+    })
+
+    expect(recommendation.primaryItem.itemId).toBe("morellonomicon")
+    expect(recommendation.primaryItem.buildStage).toBe("completed")
+    expect(recommendation.buyNowComponent).toBeUndefined()
     expect(recommendation.compliance.allowed).toBe(true)
   })
 

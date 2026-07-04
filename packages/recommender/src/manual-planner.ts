@@ -352,8 +352,8 @@ export function recommendForManualPlanner(
   const fullBuild = fullBuildIds.map((itemId) =>
     toRecommendationItem(itemId, fullBuildReason(itemId))
   )
-  const buyNowItemId: ItemId = antiHealItemByClass[champion.class]
-  const buyNowComponent = needs.hasHealing
+  const buyNowItemId = chooseBuyNowComponentItemId(champion.class, needs)
+  const buyNowComponent = buyNowItemId
     ? toRecommendationItem(
         buyNowItemId,
         "Add anti-heal when the enemy team has repeat healing."
@@ -472,6 +472,24 @@ function differentItem(
   return itemId === currentItemId ? undefined : itemId
 }
 
+function chooseBuyNowComponentItemId(
+  championClass: ChampionClass,
+  needs: EnemyNeeds
+): ItemId | undefined {
+  if (!needs.hasHealing) {
+    return undefined
+  }
+
+  const itemId = antiHealItemByClass[championClass]
+  const item = seededItemCatalog[itemId]
+
+  if (item.buildStage !== "component" || !hasFit(itemId, championClass)) {
+    return undefined
+  }
+
+  return itemId
+}
+
 function chooseFullBuildIds(
   championClass: ChampionClass,
   primaryItemId: ItemId,
@@ -570,6 +588,12 @@ function hasTrait(
 
 function hasTag(itemId: ItemId, tag: ItemTag): boolean {
   return (seededItemCatalog[itemId].tags as readonly string[]).includes(tag)
+}
+
+function hasFit(itemId: ItemId, championClass: ChampionClass): boolean {
+  return (seededItemCatalog[itemId].fits as readonly string[]).includes(
+    championClass
+  )
 }
 
 function learningRule(needs: EnemyNeeds): string {
