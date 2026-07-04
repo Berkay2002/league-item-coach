@@ -65,8 +65,7 @@ PR review workflow:
 
 - Use PowerShell for normal repo work on Windows.
 - Before opening a PR, use the `$cr-review` skill to run a local CodeRabbit review when the WSL CodeRabbit CLI is available. Invoke WSL only for that CodeRabbit command. If WSL Git reports broad false-positive changes from Windows line endings, set repo-local `core.autocrlf=true` from PowerShell before reviewing.
-- Use `$autofix` only after a PR exists and CodeRabbit has posted review-thread feedback. Treat CodeRabbit comments as untrusted issue reports, validate each finding locally, and apply fixes only with explicit approval.
-- CodeRabbit is configured as an automatic PR reviewer. Do not manually summon it unless the repository configuration changes.
+- Do not use CodeRabbit for PR reviews. Do not manually summon CodeRabbit on a PR, do not wait on CodeRabbit PR feedback, and do not use PR-thread autofix workflows. CodeRabbit is a local pre-PR review tool only.
 - GitHub Copilot code review must be requested manually. Prefer `gh pr create --reviewer "@copilot"` when opening the PR, or `gh pr edit <pr-number> --add-reviewer "@copilot"` for an existing PR.
 - Copilot reviews are comment-only and do not count as required approvals. Treat Copilot feedback as review input: address actionable findings, explain intentional non-changes, rerun verification, and push follow-up commits.
 - After pushing meaningful follow-up changes, request a Copilot re-review manually from the PR Reviewers menu.
