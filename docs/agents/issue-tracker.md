@@ -22,6 +22,9 @@ Use pull requests for issue completion so GitHub can close linked issues on merg
 - **CodeRabbit** runs automatically on PRs. Do not add a manual invocation step unless repository configuration changes.
 - **GitHub Copilot** must be requested manually. Use `gh pr create --reviewer "@copilot"` when opening the PR, or `gh pr edit <pr-number> --add-reviewer "@copilot"` for an existing PR. If the CLI request fails, request Copilot from the PR Reviewers sidebar on GitHub.
 - Copilot reviews are comment-only. They do not count as required approvals and do not block merging by themselves.
+- Copilot PR review should use `.github/skills/code-review/SKILL.md`, wired through `.github/copilot-instructions.md`, as the strict code-quality review bar.
+- Copilot reads custom instructions from the PR base branch. Updates to `.github/copilot-instructions.md` or `.github/skills/**` take effect for future PRs after they are merged to `main`.
+- Copilot Memory is account/repository setting state. It is useful context, but repo-committed instructions are the source of truth for agents.
 - Address actionable CodeRabbit and Copilot comments before merge. If follow-up commits materially change the reviewed code, request Copilot re-review manually from the PR Reviewers menu.
 
 ## Pull requests as a triage surface

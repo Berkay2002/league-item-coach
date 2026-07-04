@@ -68,6 +68,9 @@ PR review workflow:
 - If the CLI reviewer request fails, use the GitHub web UI: open the PR, find Copilot under Reviewers, and click Request.
 - Copilot reviews are comment-only and do not count as required approvals. Treat Copilot and CodeRabbit feedback as review input: address actionable findings, explain intentional non-changes, rerun verification, and push follow-up commits.
 - After pushing meaningful follow-up changes, request a Copilot re-review manually from the PR Reviewers menu.
+- Copilot review instructions live in `.github/copilot-instructions.md`, and the strict PR review skill lives in `.github/skills/code-review/SKILL.md`. Keep those files aligned with this workflow.
+- Copilot uses custom instructions from the PR base branch. Changes to `.github/copilot-instructions.md` or `.github/skills/**` affect future PR reviews after they land in `main`.
+- Copilot Memory is managed in GitHub account and repository settings, not in this repo. Do not rely on Copilot Memory as the durable source of project instructions; commit stable review rules to `.github/` and `AGENTS.md`.
 
 ## Agent-Specific Instructions
 
@@ -76,6 +79,8 @@ Issues and PRDs live in GitHub Issues. Use `gh` for tracker operations. External
 Use PRs for issue completion so linked GitHub issues auto-close on merge. Do not treat local commits on a feature branch as issue completion unless the user explicitly asks to skip the PR path.
 
 After creating a PR, confirm CodeRabbit has been allowed to run automatically and manually request GitHub Copilot review. For existing PRs, run `gh pr edit <pr-number> --add-reviewer "@copilot"` or request Copilot from the GitHub Reviewers sidebar.
+
+Copilot should use the repo's `.github/skills/code-review/SKILL.md` skill for PR reviews. If changing the review standard, update that skill and `.github/copilot-instructions.md` in the same PR.
 
 Read:
 
