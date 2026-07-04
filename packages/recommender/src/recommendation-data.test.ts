@@ -4,10 +4,10 @@ import {
   createMemoryRecommendationVersionCache,
   createStaticRecommendationVersionSource,
   loadRecommendationVersion,
-  mockSupabaseRecommendationVersionResponse,
   recommendationVersionCacheKey,
   selectBaselineRecommendations,
 } from "./recommendation-data"
+import { mockRecommendationVersion } from "./recommendation-data.fixtures"
 
 describe("recommendation data version loading", () => {
   test("returns a cached recommendation version without calling the source", async () => {
@@ -19,9 +19,7 @@ describe("recommendation data version loading", () => {
     })
     const cachedResult = await loadRecommendationVersion({
       cache,
-      source: createStaticRecommendationVersionSource(
-        mockSupabaseRecommendationVersionResponse
-      ),
+      source: createStaticRecommendationVersionSource(mockRecommendationVersion),
     })
 
     expect(cachedResult.status).toBe("ready")
@@ -39,7 +37,7 @@ describe("recommendation data version loading", () => {
   test("loads and caches the active recommendation version on a cache miss", async () => {
     const cache = createMemoryRecommendationVersionCache()
     const source = createStaticRecommendationVersionSource(
-      mockSupabaseRecommendationVersionResponse
+      mockRecommendationVersion
     )
 
     const result = await loadRecommendationVersion({ cache, source })

@@ -27,6 +27,7 @@ import {
 import { Select } from "@workspace/ui/components/select"
 
 import { createAppRecommendationVersionSource } from "./recommendation-version-source"
+import { shouldUseSupabaseRecommendationData } from "./utils/supabase"
 
 type CatalogItem =
   (typeof seededPlannerCatalog.items)[keyof typeof seededPlannerCatalog.items]
@@ -335,7 +336,10 @@ export function App() {
           </div>
 
           <div className="font-mono text-xs text-muted-foreground">
-            {recommendationDataLabel(recommendationDataState)}
+            {recommendationDataLabel(
+              recommendationDataState,
+              shouldUseSupabaseRecommendationData
+            )}
           </div>
 
           {versionedBaseline ? (
@@ -530,7 +534,10 @@ function confidenceLabel(confidence: RecommendationConfidence): string {
   return `${confidence[0].toUpperCase() + confidence.slice(1)} confidence`
 }
 
-function recommendationDataLabel(state: RecommendationDataState): string {
+function recommendationDataLabel(
+  state: RecommendationDataState,
+  supabaseSourceEnabled: boolean
+): string {
   if (state === "loading") {
     return "Recommendation data: loading"
   }
@@ -539,7 +546,12 @@ function recommendationDataLabel(state: RecommendationDataState): string {
     return `Recommendation data: unavailable (${state.reason})`
   }
 
-  const source = state.source === "cache" ? "local cache" : "local mock"
+  const source =
+    state.source === "cache"
+      ? "local cache"
+      : supabaseSourceEnabled
+        ? "Supabase"
+        : "local mock"
 
   return `Recommendation data: patch ${state.version.patch.patchVersion} from ${source}`
 }

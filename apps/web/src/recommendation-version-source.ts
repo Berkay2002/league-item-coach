@@ -1,8 +1,8 @@
 import {
   createStaticRecommendationVersionSource,
-  mockSupabaseRecommendationVersionResponse,
+  normalizeSupabaseRecommendationVersion,
+  parseSupabaseRecommendationVersionResponse,
   type RecommendationVersionSource,
-  type SupabaseRecommendationVersionResponse,
 } from "@workspace/recommender"
 
 import {
@@ -10,9 +10,12 @@ import {
   shouldUseSupabaseRecommendationData,
   supabase,
 } from "./utils/supabase"
+import { mockSupabaseRecommendationVersionResponse } from "./recommendation-version-mock"
 
 const mockSource = createStaticRecommendationVersionSource(
-  mockSupabaseRecommendationVersionResponse
+  normalizeSupabaseRecommendationVersion(
+    mockSupabaseRecommendationVersionResponse
+  )
 )
 
 export function createAppRecommendationVersionSource(): RecommendationVersionSource {
@@ -44,7 +47,9 @@ export function createAppRecommendationVersionSource(): RecommendationVersionSou
         throw new Error("No active recommendation version found")
       }
 
-      return data as SupabaseRecommendationVersionResponse
+      return normalizeSupabaseRecommendationVersion(
+        parseSupabaseRecommendationVersionResponse(data)
+      )
     },
   }
 }
