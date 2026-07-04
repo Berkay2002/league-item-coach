@@ -79,7 +79,7 @@ Issues and PRDs live in GitHub Issues. Use `gh` for tracker operations. External
 
 Use PRs for issue completion so linked GitHub issues auto-close on merge. Do not treat local commits on a feature branch as issue completion unless the user explicitly asks to skip the PR path.
 
-After creating a PR, confirm CodeRabbit has been allowed to run automatically and manually request GitHub Copilot review. For existing PRs, run `gh pr edit <pr-number> --add-reviewer "@copilot"` or request Copilot from the GitHub Reviewers sidebar.
+After creating a PR, manually request GitHub Copilot review. For existing PRs, run `gh pr edit <pr-number> --add-reviewer "@copilot"` or request Copilot from the GitHub Reviewers sidebar.
 
 Copilot should use the repo's `.github/skills/code-review/SKILL.md` skill for PR reviews. If changing the review standard, update that skill and `.github/copilot-instructions.md` in the same PR.
 
