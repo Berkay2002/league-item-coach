@@ -6,6 +6,7 @@ import {
   type ManualPlannerInput,
   type PlannerItemRecommendation,
   type RecommendationConfidence,
+  type Role,
 } from "@workspace/recommender"
 
 export interface MockOverlayRecommendation {
@@ -37,12 +38,22 @@ export const mockPlannerInput: ManualPlannerInput = {
   ownedComponentIds: [],
 }
 
+const roleLabels = {
+  top: "Top",
+  jungle: "Jungle",
+  mid: "Mid",
+  bot: "Bot",
+  support: "Support",
+} satisfies Record<Role, string>
+
 export function createMockOverlayRecommendation(
   input: ManualPlannerInput = mockPlannerInput
 ): MockOverlayRecommendation {
   try {
     return createRecommendedMockOverlayRecommendation(input)
-  } catch {
+  } catch (error) {
+    console.warn("Mock overlay recommendation fallback rendered.", error)
+
     return createFallbackMockOverlayRecommendation()
   }
 }
@@ -54,7 +65,7 @@ function createRecommendedMockOverlayRecommendation(
   const overlayRecommendation: MockOverlayRecommendation = {
     source: "mock",
     champion: recommendation.champion.name,
-    role: "Bot",
+    role: roleLabels[recommendation.role],
     currentGold: input.currentGold,
     targetItem: toOverlayItem(recommendation.targetItem),
     affordableComponent: recommendation.buyNow.component

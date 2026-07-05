@@ -29,6 +29,16 @@ describe("mock Overwolf recommendation output", () => {
     expect(recommendation.learningRule.length).toBeGreaterThan(0)
   })
 
+  test("uses the planner role in the overlay label", () => {
+    const recommendation = createMockOverlayRecommendation({
+      ...mockPlannerInput,
+      championId: "garen",
+      role: "top",
+    })
+
+    expect(recommendation.role).toBe("Top")
+  })
+
   test("keeps mocked overlay text inside MVP compliance boundaries", () => {
     const recommendation = createMockOverlayRecommendation()
     const result = validateRecommendationOutput(recommendation)
@@ -38,10 +48,19 @@ describe("mock Overwolf recommendation output", () => {
   })
 
   test("returns a compliance-safe fallback when mock generation fails", () => {
-    const recommendation = createMockOverlayRecommendation({
-      ...mockPlannerInput,
-      championId: "missing-champion" as typeof mockPlannerInput.championId,
-    })
+    const originalWarn = console.warn
+    console.warn = () => {}
+
+    let recommendation!: ReturnType<typeof createMockOverlayRecommendation>
+    try {
+      recommendation = createMockOverlayRecommendation({
+        ...mockPlannerInput,
+        championId: "missing-champion" as typeof mockPlannerInput.championId,
+      })
+    } finally {
+      console.warn = originalWarn
+    }
+
     const result = validateRecommendationOutput(recommendation)
 
     expect(recommendation.confidence).toBe("low")
