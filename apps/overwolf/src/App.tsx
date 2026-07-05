@@ -1,3 +1,5 @@
+import { useMemo } from "react"
+
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Card,
@@ -8,9 +10,9 @@ import {
 
 import { createMockOverlayRecommendation } from "./mock-recommendation"
 
-const recommendation = createMockOverlayRecommendation()
-
 export function App() {
+  const recommendation = useMemo(() => createMockOverlayRecommendation(), [])
+
   return (
     <main className="dark min-h-svh bg-background p-3 text-foreground">
       <Card className="mx-auto grid max-w-[390px] gap-2 rounded-md border-border bg-card/95 p-2.5 shadow-lg">
