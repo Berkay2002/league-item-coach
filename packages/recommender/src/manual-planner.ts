@@ -9,9 +9,13 @@ import {
 } from "./manual-planner.runes"
 import {
   summarizeEnemyNeeds,
-  type EnemyNeedReason,
   type EnemyNeeds,
 } from "./manual-planner.enemy-needs"
+import {
+  contextualNeedPlan,
+  needPlan,
+  type NeedPlanItemMaps,
+} from "./manual-planner.need-plan"
 
 export type Role = "top" | "jungle" | "mid" | "bot" | "support"
 
@@ -410,6 +414,15 @@ const antiCritItemByClass = {
   tank: "randuins-omen",
 } as const satisfies Record<ChampionClass, ItemId>
 
+const needPlanItemMaps = {
+  antiCrit: antiCritItemByClass,
+  antiHeal: completedAntiHealItemByClass,
+  antiTank: antiTankItemByClass,
+  baseline: baselineItemByClass,
+  magicDefense: magicDefenseItemByClass,
+  physicalDefense: physicalDefenseItemByClass,
+} satisfies NeedPlanItemMaps
+
 export function recommendForManualPlanner(
   input: ManualPlannerInput
 ): ManualPlannerRecommendation {
@@ -490,141 +503,11 @@ export function recommendForManualPlanner(
   }
 }
 
-interface NeedPlan {
-  targetItemForClass: (championClass: ChampionClass) => ItemId
-  targetReason: (championName: string, itemName: string) => string
-  alternativeReason: string
-  learningRule: string
-  explanation: (championName: string, itemName: string) => string
-}
-
-const baselineNeedPlan = {
-  targetItemForClass: (championClass) => baselineItemByClass[championClass],
-  targetReason: (championName) =>
-    `${championName} starts from a seeded baseline item for the selected role.`,
-  alternativeReason:
-    "Use this when the baseline plan matters more than the defensive adjustment.",
-  learningRule:
-    "Start from the seeded baseline, then adjust the next slot for the clearest enemy need.",
-  explanation: (championName, itemName) =>
-    `${championName} should target ${itemName} from the seeded baseline.`,
-} satisfies NeedPlan
-
-const needPlanByReason = {
-  "anti-crit": {
-    targetItemForClass: (championClass) => antiCritItemByClass[championClass],
-    targetReason: (championName, itemName) =>
-      `${championName} targets ${itemName} because a fed crit threat makes armor and crit reduction the clearest need.`,
-    alternativeReason:
-      "Use this when core damage is more important than answering crit first.",
-    learningRule:
-      "When a fed crit threat is ahead, add anti-crit armor before returning to baseline damage.",
-    explanation: (championName, itemName) =>
-      `${championName} should target ${itemName} because a fed crit threat makes armor the clearest adjustment.`,
-  },
-  "anti-heal": {
-    targetItemForClass: (championClass) =>
-      completedAntiHealItemByClass[championClass],
-    targetReason: (championName, itemName) =>
-      `${championName} targets ${itemName} because enemy healing is the clearest team-comp need.`,
-    alternativeReason:
-      "Use this when core damage is more important than answering healing first.",
-    learningRule:
-      "When enemy champions bring repeat healing, reserve an early anti-heal slot.",
-    explanation: (championName, itemName) =>
-      `${championName} should target ${itemName} because enemy healing is the clearest team-comp need.`,
-  },
-  armor: {
-    targetItemForClass: (championClass) =>
-      physicalDefenseItemByClass[championClass],
-    targetReason: (championName, itemName) =>
-      `${championName} targets ${itemName} because physical damage is the clearest defensive need.`,
-    alternativeReason:
-      "Use this when the baseline plan matters more than the defensive adjustment.",
-    learningRule:
-      "When physical damage is the larger threat, add armor or survivability without abandoning the core plan.",
-    explanation: (championName, itemName) =>
-      `${championName} should target ${itemName} because physical damage is the clearest adjustment.`,
-  },
-  baseline: baselineNeedPlan,
-  "fed-magic": {
-    targetItemForClass: (championClass) =>
-      magicDefenseItemByClass[championClass],
-    targetReason: (championName, itemName) =>
-      `${championName} targets ${itemName} because the strongest fed magic threat outweighs the raw team damage split.`,
-    alternativeReason:
-      "Use this when the baseline plan matters more than the defensive adjustment.",
-    learningRule:
-      "When a fed magic threat is ahead, add magic resist before returning to the core plan.",
-    explanation: (championName, itemName) =>
-      `${championName} should target ${itemName} because a fed magic threat is the clearest live danger.`,
-  },
-  "fed-physical": {
-    targetItemForClass: (championClass) =>
-      physicalDefenseItemByClass[championClass],
-    targetReason: (championName, itemName) =>
-      `${championName} targets ${itemName} because the strongest fed physical threat outweighs the raw team damage split.`,
-    alternativeReason:
-      "Use this when the baseline plan matters more than the defensive adjustment.",
-    learningRule:
-      "When a fed physical threat is ahead, add armor or survivability before returning to the core plan.",
-    explanation: (championName, itemName) =>
-      `${championName} should target ${itemName} because a fed physical threat is the clearest live danger.`,
-  },
-  "magic-resist": {
-    targetItemForClass: (championClass) =>
-      magicDefenseItemByClass[championClass],
-    targetReason: (championName, itemName) =>
-      `${championName} targets ${itemName} because magic damage is the clearest defensive need.`,
-    alternativeReason:
-      "Use this when the baseline plan matters more than the defensive adjustment.",
-    learningRule:
-      "When magic damage is the larger threat, add magic resist without abandoning the core plan.",
-    explanation: (championName, itemName) =>
-      `${championName} should target ${itemName} because magic damage is the clearest adjustment.`,
-  },
-  penetration: {
-    targetItemForClass: (championClass) => antiTankItemByClass[championClass],
-    targetReason: (championName, itemName) =>
-      `${championName} targets ${itemName} because enemy tanks make penetration the clearest need.`,
-    alternativeReason:
-      "Use this when baseline damage is more important than answering tanks first.",
-    learningRule:
-      "When the enemy team has multiple tanks, add penetration or anti-tank damage after the baseline item.",
-    explanation: (championName, itemName) =>
-      `${championName} should target ${itemName} because tank threats make penetration the clearest adjustment.`,
-  },
-} satisfies Record<EnemyNeedReason, NeedPlan>
-
-function needPlan(needs: EnemyNeeds): NeedPlan {
-  return needPlanByReason[needs.topReason]
-}
-
-function contextualNeedPlan(needs: EnemyNeeds): NeedPlan {
-  if (needs.topReason !== "baseline") {
-    return needPlan(needs)
-  }
-
-  if (needs.needsPenetration) {
-    return needPlanByReason.penetration
-  }
-
-  if (needs.magicThreats > needs.physicalThreats) {
-    return needPlanByReason["magic-resist"]
-  }
-
-  if (needs.physicalThreats > needs.magicThreats) {
-    return needPlanByReason.armor
-  }
-
-  return baselineNeedPlan
-}
-
 function chooseTargetItemId(
   championClass: ChampionClass,
   needs: EnemyNeeds
 ): ItemId {
-  return needPlan(needs).targetItemForClass(championClass)
+  return needPlan(needs, needPlanItemMaps).targetItemForClass(championClass)
 }
 
 function chooseAlternativeItemId(
@@ -784,14 +667,14 @@ function targetReason(
   itemId: ItemId,
   needs: EnemyNeeds
 ): string {
-  return needPlan(needs).targetReason(
+  return needPlan(needs, needPlanItemMaps).targetReason(
     champion.name,
     seededItemCatalog[itemId].name
   )
 }
 
 function alternativeReason(needs: EnemyNeeds): string {
-  return contextualNeedPlan(needs).alternativeReason
+  return contextualNeedPlan(needs, needPlanItemMaps).alternativeReason
 }
 
 function fullBuildReason(itemId: ItemId): string {
@@ -833,7 +716,7 @@ function formatItemList(itemIds: readonly ItemId[]): string {
 }
 
 function learningRule(needs: EnemyNeeds): string {
-  return contextualNeedPlan(needs).learningRule
+  return contextualNeedPlan(needs, needPlanItemMaps).learningRule
 }
 
 function confidenceForNeeds(
@@ -857,5 +740,8 @@ function explanationForRecommendation(
   targetItem: PlannerItemRecommendation,
   needs: EnemyNeeds
 ): string {
-  return needPlan(needs).explanation(champion.name, targetItem.name)
+  return needPlan(needs, needPlanItemMaps).explanation(
+    champion.name,
+    targetItem.name
+  )
 }

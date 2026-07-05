@@ -281,6 +281,38 @@ describe("manual planner recommendation", () => {
       learningRule: "repeat healing",
     },
     {
+      name: "enemy anti-heal item does not create an anti-heal need",
+      input: {
+        championId: "lux",
+        role: "mid",
+        allyChampionIds: ["jinx"],
+        enemyChampionIds: ["ahri", "zed"],
+        enemyLiveSnapshots: [
+          enemySnapshot("ahri", {
+            items: [
+              {
+                displayName: "Morellonomicon",
+                itemId: 3165,
+                price: 2850,
+              },
+            ],
+            level: 10,
+            creepScore: 105,
+            kills: 3,
+            assists: 4,
+            deaths: 2,
+          }),
+          enemySnapshot("zed"),
+        ],
+        currentGold: 900,
+        ownedComponentIds: [],
+      } satisfies ManualPlannerInput,
+      targetItemId: "banshees-veil",
+      alternativeItemId: "liandrys-torment",
+      fullBuildItemId: "zhonyas-hourglass",
+      learningRule: "fed magic threat",
+    },
+    {
       name: "fed crit carry moves anti-crit armor into the primary target",
       input: {
         championId: "darius",

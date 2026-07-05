@@ -95,10 +95,10 @@ const enemyItemThreatProfileById: Record<number, EnemyItemThreatProfile> = {
   [liveItemIds.krakenSlayer]: { physical: 1 },
   [liveItemIds.liandrysTorment]: { magic: 1, tank: 0.9 },
   [liveItemIds.lordDominiksRegards]: { physical: 1, crit: 0.75, tank: 0.75 },
-  [liveItemIds.morellonomicon]: { healing: 0.75, magic: 0.8 },
+  [liveItemIds.morellonomicon]: { magic: 0.8 },
   [liveItemIds.rabadonsDeathcap]: { magic: 1.6 },
   [liveItemIds.sunfireAegis]: { tank: 1.4 },
-  [liveItemIds.thornmail]: { healing: 0.5, tank: 1.2 },
+  [liveItemIds.thornmail]: { tank: 1.2 },
   [liveItemIds.warmogsArmor]: { tank: 1.6 },
 }
 
@@ -153,7 +153,7 @@ export function summarizeEnemyNeeds({
   return {
     physicalThreats: weighted.physical,
     magicThreats: weighted.magic,
-    tankCount: weighted.tank,
+    tankCount: staticNeeds.tankCount,
     hasHealing: weighted.healing >= liveHealingPresentThreshold,
     hasAntiCrit: weighted.crit >= liveCritPresentThreshold,
     needsPenetration: weighted.tank >= livePenetrationThreshold,
