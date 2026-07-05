@@ -31,13 +31,11 @@ export function App() {
 
   useEffect(() => {
     let isMounted = true
-    let requestId = 0
 
     async function refreshRecommendation() {
-      const currentRequestId = ++requestId
       const nextRecommendation = await createLiveOverlayRecommendation()
 
-      if (isMounted && currentRequestId === requestId) {
+      if (isMounted) {
         setRecommendation(nextRecommendation)
       }
     }

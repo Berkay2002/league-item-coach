@@ -128,11 +128,14 @@ export async function fetchLiveClientAllGameData({
   let timeoutId: ReturnType<typeof globalThis.setTimeout> | undefined
 
   try {
+    const request = fetcher(endpoint, {
+      method: "GET",
+      signal: controller.signal,
+    })
+    void request.catch(() => undefined)
+
     const response = await Promise.race([
-      fetcher(endpoint, {
-        method: "GET",
-        signal: controller.signal,
-      }),
+      request,
       new Promise<never>((_resolve, reject) => {
         timeoutId = globalThis.setTimeout(() => {
           controller.abort()
@@ -279,7 +282,7 @@ function overwolfWebTransport(): LiveClientDataFetcher | undefined {
     new Promise((resolve, reject) => {
       sendHttpRequest(endpoint, "GET", [], "", (result) => {
         if (!result.success) {
-          reject(new Error("Overwolf web request failed."))
+          reject(new Error(overwolfWebFailureMessage(result)))
           return
         }
 
@@ -292,6 +295,21 @@ function overwolfWebTransport(): LiveClientDataFetcher | undefined {
         })
       })
     })
+}
+
+function overwolfWebFailureMessage(
+  result: OverwolfSendHttpRequestResult
+): string {
+  const details = [
+    result.statusCode === undefined ? undefined : `status ${result.statusCode}`,
+    result.error,
+  ].filter((detail): detail is string => detail !== undefined && detail !== "")
+
+  if (details.length === 0) {
+    return "Overwolf web request failed."
+  }
+
+  return `Overwolf web request failed: ${details.join("; ")}`
 }
 
 async function fetchTransport(

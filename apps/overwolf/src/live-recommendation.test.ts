@@ -201,4 +201,37 @@ describe("live Overwolf recommendation loop", () => {
         originalOverwolf
     }
   })
+
+  test("includes Overwolf web failure details", async () => {
+    const originalOverwolf = (
+      globalThis as typeof globalThis & { overwolf?: unknown }
+    ).overwolf
+
+    ;(globalThis as typeof globalThis & { overwolf?: unknown }).overwolf = {
+      web: {
+        sendHttpRequest: (
+          _url: string,
+          _method: string,
+          _headers: readonly unknown[],
+          _data: string,
+          callback: (result: unknown) => void
+        ) => {
+          callback({
+            success: false,
+            statusCode: 403,
+            error: "missing Web permission",
+          })
+        },
+      },
+    }
+
+    try {
+      await expect(fetchLiveClientAllGameData()).rejects.toThrow(
+        "Overwolf web request failed: status 403; missing Web permission"
+      )
+    } finally {
+      ;(globalThis as typeof globalThis & { overwolf?: unknown }).overwolf =
+        originalOverwolf
+    }
+  })
 })
