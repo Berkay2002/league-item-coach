@@ -10,8 +10,9 @@ The product target is an Overwolf Native Framework WebApp: HTML, JavaScript, Rea
 - API overview: https://dev.overwolf.com/ow-native/reference/ow-api-overview
 - Manifest file: https://dev.overwolf.com/ow-native/reference/manifest/manifest-json
 - Manifest validation: https://dev.overwolf.com/ow-native/reference/manifest/validate-your-manifest-json
-- Manifest schema: https://github.com/overwolf/community-gists/blob/master/overwolf-manifest-schema.json
-- Raw manifest schema: https://raw.githubusercontent.com/overwolf/community-gists/master/overwolf-manifest-schema.json
+- Manifest schema: `apps/overwolf/overwolf-manifest-schema.json`
+- Validation command: `cd apps/overwolf && bun run validate:manifest`
+- Web API: https://dev.overwolf.com/ow-native/reference/web/ow-web
 - Windows API: https://dev.overwolf.com/ow-native/reference/windows/ow-windows
 
 ## Manifest Baseline
@@ -131,6 +132,8 @@ Use it for:
 
 This direct HTTP path is useful for local replay fixtures, development outside Overwolf, and deterministic recommender tests.
 
+Inside the Overwolf runtime, use `overwolf.web.sendHttpRequest()` for this endpoint. Overwolf documents that method as the local HTTPS request path for localhost or `127.0.0.1` when certificate verification needs to be bypassed, and it requires the `Web` manifest permission.
+
 Overwolf owns the app shell, overlay, windows, and game lifecycle. Riot Live Client Data owns the match-state input for local recommendation decisions, whether that data arrives through direct local HTTP or through Overwolf's League `live_client_data` feature.
 
 ## Optional Later
@@ -150,13 +153,13 @@ League exposes these relevant features:
 Preferred MVP feature set:
 
 ```ts
-["live_client_data", "matchState"]
+;["live_client_data", "matchState"]
 ```
 
 Expanded safe feature set if needed:
 
 ```ts
-["live_client_data", "matchState", "summoner_info", "teams"]
+;["live_client_data", "matchState", "summoner_info", "teams"]
 ```
 
 The `live_client_data` feature exposes:
@@ -246,7 +249,6 @@ These API areas are not needed for the MVP unless a later issue gives a concrete
 - settings
 - social
 - streaming
-- web
 - OBS
 - Overwolf OIDC
 - App Subscriptions API

@@ -99,6 +99,6 @@ describe("Overwolf manifest", () => {
       width: 390,
       height: 330,
     })
-    expect(manifest.permissions ?? []).toEqual([])
+    expect(manifest.permissions).toEqual(["Web"])
   })
 })

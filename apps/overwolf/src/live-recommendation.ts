@@ -22,13 +22,13 @@ export type OverlayRecommendationSource = "live" | "replay" | "fallback"
 export interface OverlayRecommendation {
   source: OverlayRecommendationSource
   champion: string
-  role: string
+  role: Role
+  roleLabel: string
   currentGold: number
   targetItem: OverlayItemRecommendation
   affordableComponent?: OverlayItemRecommendation
   alternativeItem?: OverlayItemRecommendation
   confidence: RecommendationConfidence
-  reason: string
   explanation: string
   learningRule: string
   warnings: readonly string[]
@@ -43,9 +43,49 @@ export interface OverlayItemRecommendation {
 
 export interface LiveRecommendationOptions {
   endpoint?: string
-  fetcher?: typeof fetch
+  fetcher?: LiveClientDataFetcher
   replayFallback?: LiveClientAllGameData
   requestTimeoutMs?: number
+}
+
+export interface LiveClientDataRequestInit {
+  method: "GET"
+  signal: AbortSignal
+}
+
+export type LiveClientDataFetcher = (
+  endpoint: string,
+  init: LiveClientDataRequestInit
+) => Promise<LiveClientDataResponse>
+
+interface LiveClientDataResponse {
+  ok: boolean
+  status: number
+  json: () => Promise<unknown>
+}
+
+interface OverwolfRuntime {
+  web?: {
+    sendHttpRequest?: (
+      url: string,
+      method: "GET",
+      headers: readonly OverwolfFetchHeader[],
+      data: string,
+      callback: (result: OverwolfSendHttpRequestResult) => void
+    ) => void
+  }
+}
+
+interface OverwolfFetchHeader {
+  key: string
+  value: string
+}
+
+interface OverwolfSendHttpRequestResult {
+  success?: boolean
+  error?: string
+  statusCode?: number
+  data?: string
 }
 
 const roleLabels = {
@@ -65,12 +105,12 @@ export async function createLiveOverlayRecommendation(
     return createOverlayRecommendationFromReplay(replay, {
       source: "live",
     })
-  } catch (error) {
+  } catch {
     return createOverlayRecommendationFromReplay(
       options.replayFallback ?? bundledReplayFixture,
       {
         source: "replay",
-        warnings: [liveClientUnavailableWarning(error)],
+        warnings: [liveClientUnavailableWarning()],
       }
     )
   }
@@ -78,35 +118,39 @@ export async function createLiveOverlayRecommendation(
 
 export async function fetchLiveClientAllGameData({
   endpoint = liveClientAllGameDataUrl,
-  fetcher = fetch,
+  fetcher = defaultLiveClientDataFetcher(),
   requestTimeoutMs = liveClientRequestTimeoutMs,
 }: Pick<
   LiveRecommendationOptions,
   "endpoint" | "fetcher" | "requestTimeoutMs"
 > = {}): Promise<LiveClientAllGameData> {
   const controller = new AbortController()
-  const timeoutId = globalThis.setTimeout(
-    () => controller.abort(),
-    requestTimeoutMs
-  )
-
-  let response: Response
+  let timeoutId: ReturnType<typeof globalThis.setTimeout> | undefined
 
   try {
-    response = await fetcher(endpoint, {
-      cache: "no-store",
-      method: "GET",
-      signal: controller.signal,
-    })
+    const response = await Promise.race([
+      fetcher(endpoint, {
+        method: "GET",
+        signal: controller.signal,
+      }),
+      new Promise<never>((_resolve, reject) => {
+        timeoutId = globalThis.setTimeout(() => {
+          controller.abort()
+          reject(new Error("Live Client Data request timed out."))
+        }, requestTimeoutMs)
+      }),
+    ])
+
+    if (!response.ok) {
+      throw new Error(`Live Client Data request failed: ${response.status}`)
+    }
+
+    return (await response.json()) as LiveClientAllGameData
   } finally {
-    globalThis.clearTimeout(timeoutId)
+    if (timeoutId !== undefined) {
+      globalThis.clearTimeout(timeoutId)
+    }
   }
-
-  if (!response.ok) {
-    throw new Error(`Live Client Data request failed: ${response.status}`)
-  }
-
-  return (await response.json()) as LiveClientAllGameData
 }
 
 export function createOverlayRecommendationFromReplay(
@@ -142,7 +186,8 @@ function createOverlayRecommendationFromPlannerInput({
     const overlayRecommendation: OverlayRecommendation = {
       source,
       champion: recommendation.champion.name,
-      role: roleLabels[recommendation.role],
+      role: recommendation.role,
+      roleLabel: roleLabels[recommendation.role],
       currentGold: input.currentGold,
       targetItem: toOverlayItem(recommendation.targetItem),
       affordableComponent: recommendation.buyNow.component
@@ -155,7 +200,6 @@ function createOverlayRecommendationFromPlannerInput({
         ? toOverlayItem(recommendation.alternativeItem)
         : undefined,
       confidence: recommendation.confidence,
-      reason: recommendation.targetItem.reason,
       explanation: recommendation.explanation,
       learningRule: recommendation.learningRule,
       warnings,
@@ -164,19 +208,19 @@ function createOverlayRecommendationFromPlannerInput({
     assertRecommendationOutputAllowed(overlayRecommendation)
 
     return overlayRecommendation
-  } catch (error) {
-    return createFallbackOverlayRecommendation(error, warnings)
+  } catch {
+    return createFallbackOverlayRecommendation(warnings)
   }
 }
 
 function createFallbackOverlayRecommendation(
-  error: unknown,
   warnings: readonly string[]
 ): OverlayRecommendation {
   const fallbackRecommendation: OverlayRecommendation = {
     source: "fallback",
     champion: "Jinx",
-    role: "Bot",
+    role: "bot",
+    roleLabel: "Bot",
     currentGold: 0,
     targetItem: {
       itemId: "kraken-slayer",
@@ -185,26 +229,87 @@ function createFallbackOverlayRecommendation(
       tags: ["damage"],
     },
     confidence: "low",
-    reason: "Fallback seeded item shown because live data is unavailable.",
     explanation: "Live recommendation data is unavailable in this shell.",
     learningRule:
       "Item recommendations compare enemy needs with the next useful item slot.",
-    warnings: [...warnings, recommendationErrorWarning(error)],
+    warnings: [...warnings, recommendationErrorWarning()],
   }
 
   try {
     assertRecommendationOutputAllowed(fallbackRecommendation)
-  } catch (complianceError) {
-    return {
-      ...fallbackRecommendation,
-      warnings: [
-        ...fallbackRecommendation.warnings,
-        recommendationErrorWarning(complianceError),
-      ],
-    }
+  } catch {
+    return safeUnavailableOverlayRecommendation()
   }
 
   return fallbackRecommendation
+}
+
+function safeUnavailableOverlayRecommendation(): OverlayRecommendation {
+  return {
+    source: "fallback",
+    champion: "Jinx",
+    role: "bot",
+    roleLabel: "Bot",
+    currentGold: 0,
+    targetItem: {
+      itemId: "kraken-slayer",
+      name: "Kraken Slayer",
+      reason: "Recommendation unavailable.",
+      tags: ["damage"],
+    },
+    confidence: "low",
+    explanation: "Recommendation unavailable.",
+    learningRule: "Recommendation unavailable.",
+    warnings: [],
+  }
+}
+
+function defaultLiveClientDataFetcher(): LiveClientDataFetcher {
+  return overwolfWebTransport() ?? fetchTransport
+}
+
+function overwolfWebTransport(): LiveClientDataFetcher | undefined {
+  const sendHttpRequest = overwolfRuntime()?.web?.sendHttpRequest
+
+  if (!sendHttpRequest) {
+    return undefined
+  }
+
+  return (endpoint) =>
+    new Promise((resolve, reject) => {
+      sendHttpRequest(endpoint, "GET", [], "", (result) => {
+        if (!result.success) {
+          reject(new Error("Overwolf web request failed."))
+          return
+        }
+
+        const status = result.statusCode ?? 200
+
+        resolve({
+          ok: status >= 200 && status < 300,
+          status,
+          json: async () => JSON.parse(result.data ?? "{}") as unknown,
+        })
+      })
+    })
+}
+
+async function fetchTransport(
+  endpoint: string,
+  init: LiveClientDataRequestInit
+): Promise<LiveClientDataResponse> {
+  const response = await fetch(endpoint, {
+    cache: "no-store",
+    method: init.method,
+    signal: init.signal,
+  })
+
+  return response
+}
+
+function overwolfRuntime(): OverwolfRuntime | undefined {
+  return (globalThis as typeof globalThis & { overwolf?: OverwolfRuntime })
+    .overwolf
 }
 
 function toOverlayItem(
@@ -219,14 +324,10 @@ function toOverlayItem(
   }
 }
 
-function liveClientUnavailableWarning(error: unknown): string {
-  return `Live Client Data unavailable; using bundled replay fixture. ${errorMessage(error)}`
+function liveClientUnavailableWarning(): string {
+  return "Live Client Data unavailable; using bundled replay fixture."
 }
 
-function recommendationErrorWarning(error: unknown): string {
-  return `Recommendation generation failed. ${errorMessage(error)}`
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Unknown error."
+function recommendationErrorWarning(): string {
+  return "Recommendation generation failed."
 }

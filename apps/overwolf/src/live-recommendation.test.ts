@@ -8,6 +8,7 @@ import {
   fetchLiveClientAllGameData,
   liveClientRequestTimeoutMs,
   liveClientAllGameDataUrl,
+  type LiveClientDataFetcher,
 } from "./live-recommendation"
 import { bundledReplayFixture } from "./replay-fixtures"
 
@@ -22,12 +23,13 @@ describe("live Overwolf recommendation loop", () => {
 
     expect(recommendation.source).toBe("replay")
     expect(recommendation.champion).toBe("Jinx")
-    expect(recommendation.role).toBe("Bot")
+    expect(recommendation.role).toBe("bot")
+    expect(recommendation.roleLabel).toBe("Bot")
     expect(recommendation.currentGold).toBe(1500)
     expect(recommendation.targetItem.name).toBe("Mortal Reminder")
     expect(recommendation.affordableComponent?.name).toBe("Last Whisper")
     expect(recommendation.confidence).toBe("medium")
-    expect(recommendation.reason).toContain("enemy healing")
+    expect(recommendation.targetItem.reason).toContain("enemy healing")
     expect(validateRecommendationOutput(recommendation).allowed).toBe(true)
   })
 
@@ -98,7 +100,7 @@ describe("live Overwolf recommendation loop", () => {
     )
 
     expect(recommendation.targetItem.name).toBe("Lord Dominik's Regards")
-    expect(recommendation.reason).toContain("penetration")
+    expect(recommendation.targetItem.reason).toContain("penetration")
   })
 
   test("uses bundled replay data when League is not running", async () => {
@@ -118,13 +120,14 @@ describe("live Overwolf recommendation loop", () => {
 
   test("fetches only the local Live Client Data endpoint with GET", async () => {
     const calls: unknown[] = []
-    const fetcher: typeof fetch = async (input, init) => {
+    const fetcher: LiveClientDataFetcher = async (input, init) => {
       calls.push([input, init])
 
       return {
         ok: true,
+        status: 200,
         json: async () => bundledReplayFixture,
-      } as Response
+      }
     }
 
     const replay = await fetchLiveClientAllGameData({ fetcher })
@@ -134,7 +137,6 @@ describe("live Overwolf recommendation loop", () => {
       [
         liveClientAllGameDataUrl,
         expect.objectContaining({
-          cache: "no-store",
           method: "GET",
           signal: expect.any(AbortSignal),
         }),
@@ -143,8 +145,8 @@ describe("live Overwolf recommendation loop", () => {
   })
 
   test("times out hung local Live Client Data requests", async () => {
-    const fetcher: typeof fetch = async (_input, init) => {
-      return await new Promise<Response>((_resolve, reject) => {
+    const fetcher: LiveClientDataFetcher = async (_input, init) => {
+      return await new Promise((_resolve, reject) => {
         const signal = init?.signal
 
         if (signal instanceof AbortSignal) {
@@ -160,7 +162,43 @@ describe("live Overwolf recommendation loop", () => {
         fetcher,
         requestTimeoutMs: 1,
       })
-    ).rejects.toThrow("aborted")
+    ).rejects.toThrow("timed out")
     expect(liveClientRequestTimeoutMs).toBeGreaterThan(1)
+  })
+
+  test("uses Overwolf web transport when the runtime provides it", async () => {
+    const originalOverwolf = (
+      globalThis as typeof globalThis & { overwolf?: unknown }
+    ).overwolf
+    const calls: unknown[] = []
+
+    ;(globalThis as typeof globalThis & { overwolf?: unknown }).overwolf = {
+      web: {
+        sendHttpRequest: (
+          url: string,
+          method: string,
+          headers: readonly unknown[],
+          data: string,
+          callback: (result: unknown) => void
+        ) => {
+          calls.push([url, method, headers, data])
+          callback({
+            success: true,
+            statusCode: 200,
+            data: JSON.stringify(bundledReplayFixture),
+          })
+        },
+      },
+    }
+
+    try {
+      const replay = await fetchLiveClientAllGameData()
+
+      expect(replay).toEqual(bundledReplayFixture)
+      expect(calls).toEqual([[liveClientAllGameDataUrl, "GET", [], ""]])
+    } finally {
+      ;(globalThis as typeof globalThis & { overwolf?: unknown }).overwolf =
+        originalOverwolf
+    }
   })
 })

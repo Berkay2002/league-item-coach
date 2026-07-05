@@ -42,15 +42,29 @@ export function App() {
       }
     }
 
-    void refreshRecommendation()
-    const refreshId = window.setInterval(
-      () => void refreshRecommendation(),
-      liveRecommendationRefreshMs
-    )
+    let refreshId: number | undefined
+
+    function scheduleRefresh() {
+      refreshId = window.setTimeout(() => {
+        void refreshRecommendation().finally(() => {
+          if (isMounted) {
+            scheduleRefresh()
+          }
+        })
+      }, liveRecommendationRefreshMs)
+    }
+
+    void refreshRecommendation().finally(() => {
+      if (isMounted) {
+        scheduleRefresh()
+      }
+    })
 
     return () => {
       isMounted = false
-      window.clearInterval(refreshId)
+      if (refreshId !== undefined) {
+        window.clearTimeout(refreshId)
+      }
     }
   }, [])
 
@@ -64,7 +78,7 @@ export function App() {
                 League Item Coach
               </p>
               <CardTitle className="truncate text-base">
-                {recommendation.champion} {recommendation.role}
+                {recommendation.champion} {recommendation.roleLabel}
               </CardTitle>
             </div>
             <Badge variant="secondary" className="shrink-0">
@@ -87,7 +101,7 @@ export function App() {
               {recommendation.targetItem.name}
             </div>
             <p className="text-sm text-muted-foreground">
-              {recommendation.reason}
+              {recommendation.targetItem.reason}
             </p>
             <TagList tags={recommendation.targetItem.tags} />
           </section>
