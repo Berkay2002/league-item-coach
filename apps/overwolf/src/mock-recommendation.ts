@@ -42,9 +42,7 @@ export function createMockOverlayRecommendation(): MockOverlayRecommendation {
     champion: recommendation.champion.name,
     role: "Bot",
     currentGold: mockPlannerInput.currentGold,
-    targetItem: toOverlayItem(recommendation.targetItem, {
-      reason: recommendation.explanation,
-    }),
+    targetItem: toOverlayItem(recommendation.targetItem),
     affordableComponent: recommendation.buyNow.component
       ? toOverlayItem(recommendation.buyNow.component, {
           reason: `${recommendation.buyNow.component.name} fits the ${recommendation.targetItem.name} path at ${mockPlannerInput.currentGold} gold.`,
@@ -57,7 +55,7 @@ export function createMockOverlayRecommendation(): MockOverlayRecommendation {
       : undefined,
     confidence: recommendation.confidence,
     explanation: recommendation.explanation,
-    learningRule: "Repeat healing raises anti-heal priority.",
+    learningRule: recommendation.learningRule,
   }
 
   assertRecommendationOutputAllowed(overlayRecommendation)

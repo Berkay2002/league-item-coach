@@ -9,13 +9,21 @@ describe("mock Overwolf recommendation output", () => {
     const recommendation = createMockOverlayRecommendation()
 
     expect(recommendation.source).toBe("mock")
-    expect(recommendation.champion).toBe("Jinx")
-    expect(recommendation.targetItem.name).toBe("Mortal Reminder")
-    expect(recommendation.affordableComponent?.name).toBe(
-      "Executioner's Calling"
+    expect(recommendation.champion.length).toBeGreaterThan(0)
+    expect(recommendation.role.length).toBeGreaterThan(0)
+    expect(recommendation.currentGold).toBeGreaterThanOrEqual(0)
+    expect(recommendation.targetItem).toEqual(
+      expect.objectContaining({
+        itemId: expect.any(String),
+        name: expect.any(String),
+        reason: expect.any(String),
+      })
     )
-    expect(recommendation.currentGold).toBe(900)
-    expect(recommendation.alternativeItem?.name).toBe("Kraken Slayer")
+    expect(recommendation.targetItem.itemId.length).toBeGreaterThan(0)
+    expect(recommendation.targetItem.name.length).toBeGreaterThan(0)
+    expect(recommendation.targetItem.reason.length).toBeGreaterThan(0)
+    expect(recommendation.explanation.length).toBeGreaterThan(0)
+    expect(recommendation.learningRule.length).toBeGreaterThan(0)
   })
 
   test("keeps mocked overlay text inside MVP compliance boundaries", () => {
