@@ -24,3 +24,8 @@ Issue status values:
 9. `0009-overwolf-overlay-shell-with-mocked-recommendations.md`
 10. `0010-overwolf-live-recommendation-loop.md`
 11. `0011-match-pipeline-design-for-high-elo-baselines.md`
+22. `0022-champion-select-candidate-bundle-with-summoners-and-shards.md`
+23. `0023-composition-aware-champion-select-scoring.md`
+24. `0024-high-elo-baseline-design-for-champion-select-styles.md`
+25. `0025-curated-matchup-tags-for-first-champion-set.md`
+26. `0026-champion-select-fallback-and-compliance-hardening.md`
