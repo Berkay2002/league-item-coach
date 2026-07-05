@@ -19,6 +19,7 @@ The MVP must demonstrate:
 - Contextual item planning.
 - Live item adaptation from current match data.
 - Buy-now component recommendations.
+- Composition-aware rune and summoner recommendations before the game starts.
 - Short deterministic explanations.
 - A clean Windows overlay/companion experience.
 - A web surface that reuses the same UI language and recommendation concepts.
@@ -37,7 +38,7 @@ Build a TypeScript monorepo with:
 
 The MVP focuses on:
 
-- Champion select rune recommendation.
+- Champion select rune and summoner recommendation.
 - Starting item recommendation.
 - Full planned build in collapsed form.
 - Live in-game next item recommendation.
@@ -55,6 +56,7 @@ The MVP avoids:
 - Macro advice.
 - Pro-grade analytics.
 - Huge champion-specific curated coverage.
+- Champion-select recommendations based on enemy player identity or scouting profiles.
 
 ## User Stories
 
@@ -79,28 +81,30 @@ The MVP avoids:
 19. As a Windows League player, I want a collapsed full-build plan, so that I can see where the app is going if I have time.
 20. As a Windows League player, I want recommended starting items, so that the app helps from minute one.
 21. As a Windows League player, I want first-recall guidance, so that low-gold recalls do not ruin my build path.
-22. As a Windows League player, I want rune recommendations in champion select, so that I enter the match with a reasonable page.
-23. As a Windows League player, I want rune recommendations to show primary tree, keystone, secondary tree, and key minor runes, so that I know only what matters.
-24. As a Windows League player, I want rune recommendations to explain the safety/aggression tradeoff, so that I understand why the page fits the match.
-25. As a Windows League player, I want runes not to change in-game, so that the app does not suggest impossible actions.
-26. As a Mac user, I want a web app with manual champion/role/enemy-comp selection, so that I can still learn and plan without an overlay.
-27. As a web user, I want to view item/rune recommendations outside a live game, so that I can study champions before playing.
-28. As a web user, I want the web app and Overwolf app to agree, so that recommendations feel consistent.
-29. As a user, I want item/champion icons and names to match the current patch, so that I can trust the app.
-30. As a user, I want confidence labels, so that I know when the app is strongly supported by data and tags.
-31. As a user, I want the app to work for all champions, so that uncommon picks still get a recommendation.
-32. As a user, I want better recommendations for the most common supported champions, so that the MVP feels genuinely useful in common games.
-33. As a developer, I want one shared recommender module, so that web and Overwolf do not fork recommendation behavior.
-34. As a developer, I want deterministic scoring, so that bad recommendations can be debugged with fixtures.
-35. As a developer, I want curated item tags, so that the engine can reason about anti-heal, anti-crit, armor, magic resist, scaling, active-item complexity, and champion fit.
-36. As a developer, I want curated champion tags, so that the engine can reason about champion class, damage profile, role, and common item families.
-37. As a developer, I want Data Dragon sync, so that item IDs, prices, icons, and names are current.
-38. As a developer, I want a compact recommendation table from Supabase, so that the client can start quickly.
-39. As a developer, I want recommendation tables cached locally, so that the app remains usable during backend issues.
-40. As a developer, I want Riot API secrets only in backend/worker contexts, so that shipped clients do not expose keys.
-41. As a developer, I want local Live Client Data polling to be isolated behind an adapter, so that recommender tests can use fixtures instead of a live game.
-42. As a developer, I want compliance rules documented in the MVP, so that forbidden features do not creep in.
-43. As an Overwolf/Riot reviewer, I want the MVP to avoid cooldown timers, power-spike alerts, and action-dictating notifications, so that it fits game-integrity boundaries.
+22. As a Windows League player, I want rune and summoner recommendations in champion select, so that I enter the match with a reasonable setup.
+23. As a Windows League player, I want rune recommendations to show primary tree, keystone, secondary tree, key minor runes, and stat shards, so that I know exactly what to set.
+24. As a Windows League player, I want summoner recommendations to show the exact spell pair, so that I am not guessing between Heal, Cleanse, Exhaust, Barrier, Ignite, Teleport, Ghost, Smite, or Flash.
+25. As a Windows League player, I want champion-select recommendations to explain the main matchup or composition tradeoff, so that I understand why the setup fits the draft.
+26. As a Windows League player, I want champion-select recommendations to avoid enemy player scouting, so that the app respects ranked anonymity and stays focused on composition.
+27. As a Windows League player, I want runes and summoners not to change in-game, so that the app does not suggest impossible actions.
+28. As a Mac user, I want a web app with manual champion/role/enemy-comp selection, so that I can still learn and plan without an overlay.
+29. As a web user, I want to view item/rune recommendations outside a live game, so that I can study champions before playing.
+30. As a web user, I want the web app and Overwolf app to agree, so that recommendations feel consistent.
+31. As a user, I want item/champion/rune/summoner icons and names to match the current patch, so that I can trust the app.
+32. As a user, I want confidence labels, so that I know when the app is strongly supported by data and tags.
+33. As a user, I want the app to work for all champions, so that uncommon picks still get a recommendation.
+34. As a user, I want better recommendations for the most common supported champions, so that the MVP feels genuinely useful in common games.
+35. As a developer, I want one shared recommender module, so that web and Overwolf do not fork recommendation behavior.
+36. As a developer, I want deterministic scoring, so that bad recommendations can be debugged with fixtures.
+37. As a developer, I want curated item tags, so that the engine can reason about anti-heal, anti-crit, armor, magic resist, scaling, active-item complexity, and champion fit.
+38. As a developer, I want curated champion and matchup tags, so that the engine can reason about poke, burst, dive, hard CC, scaling, sustain, shielding, engage, disengage, and lane pressure.
+39. As a developer, I want Data Dragon sync, so that item IDs, prices, icons, rune IDs, summoner spell IDs, and names are current.
+40. As a developer, I want a compact recommendation table from Supabase, so that the client can start quickly.
+41. As a developer, I want recommendation tables cached locally, so that the app remains usable during backend issues.
+42. As a developer, I want Riot API secrets only in backend/worker contexts, so that shipped clients do not expose keys.
+43. As a developer, I want local Live Client Data polling to be isolated behind an adapter, so that recommender tests can use fixtures instead of a live game.
+44. As a developer, I want compliance rules documented in the MVP, so that forbidden features do not creep in.
+45. As an Overwolf/Riot reviewer, I want the MVP to avoid cooldown timers, power-spike alerts, action-dictating notifications, and champion-select enemy-player scouting, so that it fits game-integrity boundaries.
 
 ## Implementation Decisions
 
@@ -128,6 +132,17 @@ bunx --bun shadcn@latest init --preset b7DMx6v9s --template vite --monorepo
 - MVP may start with seeded or partially generated baseline data, but the schema should support later Match-V5 aggregation.
 - Use a worker for Match-V5 data collection and aggregation when moving beyond seed data.
 - Use high-elo baseline assumptions, then apply beginner usability penalties in the recommender.
+- Treat champion-select rune and summoner recommendations as first-class recommendation output, not as a thin explanation layer on top of static pages.
+- Represent champion-select baselines as multiple patch-versioned style candidates per champion and role where needed, then show one selected setup to the user.
+- Source champion-select baselines from a hybrid of high-elo Match-V5 aggregation and curated constraints or overrides.
+- Use Emerald+ data for coverage, weight Diamond+ and Master+ evidence higher when sample size supports it, and keep low-sample elite picks from dominating common trusted baselines.
+- Serve compact resolved champion-select candidates to clients, including rune page, stat shards, summoner pair, evidence, constraints, tags, and confidence.
+- Use champion, role, lane matchup, enemy composition, ally composition, and explicit user skill/preference as champion-select inputs.
+- Do not use enemy player identity, enemy rank, match history, or scouting profiles for champion-select rune or summoner recommendations.
+- Allow composition to adapt secondary trees, minor runes, stat shards, and the second summoner spell more readily than keystones or primary trees.
+- Change keystones or primary rune trees only when the alternative is a known valid champion-role style.
+- Lock Flash for almost all champion-select recommendations and lock Smite for jungle.
+- Recommend exact manual rune pages, stat shards, and summoner spell pairs, but do not auto-import rune pages or summoner spells in MVP.
 - Use local Live Client Data API polling in the Overwolf app for active match state.
 - Use player list, player items, active player gold, player scores, champion names, levels, and game state as live inputs.
 - Compute enemy threat weights locally.
@@ -170,6 +185,9 @@ bunx --bun shadcn@latest init --preset b7DMx6v9s --template vite --monorepo
   - Explanation references the actual top reason.
   - Forbidden macro phrases are not emitted.
 - Test rune recommendation fixtures for common champion/role/matchup cases.
+- Test summoner recommendation fixtures for hard CC, burst/dive, poke, tank-heavy drafts, weak signals, Flash lock, Smite lock, and beginner-safe close calls.
+- Test champion-select data contracts for valid rune tree slots, key minor runes, stat shards, summoner pairs, patch metadata, evidence, sample size, and confidence.
+- Test that champion-select explanations do not mention enemy player identity, enemy rank, scouting profiles, cooldown tracking, objective calls, or lane-state instructions.
 - Test Data Dragon parsing against pinned fixture versions.
 - Test item ID mapping from Live Client Data item IDs.
 - Test Supabase recommendation-table contracts with schema-level tests or typed query fixtures.
@@ -185,6 +203,7 @@ bunx --bun shadcn@latest init --preset b7DMx6v9s --template vite --monorepo
 - LLM recommendations.
 - LLM explanations.
 - Auto rune import.
+- Auto summoner spell import.
 - User accounts.
 - Personalized long-term player modeling.
 - Paid subscriptions.
@@ -213,4 +232,3 @@ bunx --bun shadcn@latest init --preset b7DMx6v9s --template vite --monorepo
 - A practical first curated set could cover common ADC, mid, top, jungle, and support picks, but the exact list should be decided during implementation planning.
 - The app should present confidence as user-facing trust, not as an apology for fallback behavior.
 - The first Overwolf proposal should describe the product as an item/rune education and recommendation assistant with strict boundaries against live tactical coaching.
-- Issue tracker publishing was not performed because this is a projectless planning thread with no tracker configured.
