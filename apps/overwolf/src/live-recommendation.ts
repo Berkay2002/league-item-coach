@@ -15,6 +15,7 @@ import { bundledReplayFixture } from "./replay-fixtures"
 export const liveClientAllGameDataUrl =
   "https://127.0.0.1:2999/liveclientdata/allgamedata"
 export const liveRecommendationRefreshMs = 5_000
+export const liveClientRequestTimeoutMs = 2_000
 
 export type OverlayRecommendationSource = "live" | "replay" | "fallback"
 
@@ -44,6 +45,7 @@ export interface LiveRecommendationOptions {
   endpoint?: string
   fetcher?: typeof fetch
   replayFallback?: LiveClientAllGameData
+  requestTimeoutMs?: number
 }
 
 const roleLabels = {
@@ -77,14 +79,28 @@ export async function createLiveOverlayRecommendation(
 export async function fetchLiveClientAllGameData({
   endpoint = liveClientAllGameDataUrl,
   fetcher = fetch,
+  requestTimeoutMs = liveClientRequestTimeoutMs,
 }: Pick<
   LiveRecommendationOptions,
-  "endpoint" | "fetcher"
+  "endpoint" | "fetcher" | "requestTimeoutMs"
 > = {}): Promise<LiveClientAllGameData> {
-  const response = await fetcher(endpoint, {
-    cache: "no-store",
-    method: "GET",
-  })
+  const controller = new AbortController()
+  const timeoutId = globalThis.setTimeout(
+    () => controller.abort(),
+    requestTimeoutMs
+  )
+
+  let response: Response
+
+  try {
+    response = await fetcher(endpoint, {
+      cache: "no-store",
+      method: "GET",
+      signal: controller.signal,
+    })
+  } finally {
+    globalThis.clearTimeout(timeoutId)
+  }
 
   if (!response.ok) {
     throw new Error(`Live Client Data request failed: ${response.status}`)
@@ -176,7 +192,17 @@ function createFallbackOverlayRecommendation(
     warnings: [...warnings, recommendationErrorWarning(error)],
   }
 
-  assertRecommendationOutputAllowed(fallbackRecommendation)
+  try {
+    assertRecommendationOutputAllowed(fallbackRecommendation)
+  } catch (complianceError) {
+    return {
+      ...fallbackRecommendation,
+      warnings: [
+        ...fallbackRecommendation.warnings,
+        recommendationErrorWarning(complianceError),
+      ],
+    }
+  }
 
   return fallbackRecommendation
 }

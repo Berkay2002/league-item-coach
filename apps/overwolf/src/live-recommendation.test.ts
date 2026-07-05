@@ -6,6 +6,7 @@ import {
   createLiveOverlayRecommendation,
   createOverlayRecommendationFromReplay,
   fetchLiveClientAllGameData,
+  liveClientRequestTimeoutMs,
   liveClientAllGameDataUrl,
 } from "./live-recommendation"
 import { bundledReplayFixture } from "./replay-fixtures"
@@ -132,11 +133,34 @@ describe("live Overwolf recommendation loop", () => {
     expect(calls).toEqual([
       [
         liveClientAllGameDataUrl,
-        {
+        expect.objectContaining({
           cache: "no-store",
           method: "GET",
-        },
+          signal: expect.any(AbortSignal),
+        }),
       ],
     ])
+  })
+
+  test("times out hung local Live Client Data requests", async () => {
+    const fetcher: typeof fetch = async (_input, init) => {
+      return await new Promise<Response>((_resolve, reject) => {
+        const signal = init?.signal
+
+        if (signal instanceof AbortSignal) {
+          signal.addEventListener("abort", () => {
+            reject(new Error("aborted"))
+          })
+        }
+      })
+    }
+
+    await expect(
+      fetchLiveClientAllGameData({
+        fetcher,
+        requestTimeoutMs: 1,
+      })
+    ).rejects.toThrow("aborted")
+    expect(liveClientRequestTimeoutMs).toBeGreaterThan(1)
   })
 })
