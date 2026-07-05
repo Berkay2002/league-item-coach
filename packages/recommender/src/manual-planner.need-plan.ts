@@ -90,7 +90,7 @@ const needPlanDefinitionByReason = {
     alternativeReason:
       "Use this when the baseline plan matters more than the defensive adjustment.",
     learningRule:
-      "When a fed magic threat is ahead, add magic resist before returning to the core plan.",
+      "When a fed magic threat is ahead, add a defensive adjustment before returning to the core plan.",
     explanation: (championName, itemName) =>
       `${championName} should target ${itemName} because a fed magic threat is the clearest live danger.`,
   },
@@ -112,7 +112,7 @@ const needPlanDefinitionByReason = {
     alternativeReason:
       "Use this when the baseline plan matters more than the defensive adjustment.",
     learningRule:
-      "When magic damage is the larger threat, add magic resist without abandoning the core plan.",
+      "When magic damage is the larger threat, add a defensive adjustment without abandoning the core plan.",
     explanation: (championName, itemName) =>
       `${championName} should target ${itemName} because magic damage is the clearest adjustment.`,
   },

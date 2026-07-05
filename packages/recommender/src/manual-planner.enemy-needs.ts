@@ -269,7 +269,7 @@ function damageThreatShares(
     return { physicalShare: 0, magicShare: 1 }
   }
 
-  return { physicalShare: 0.6, magicShare: 0.6 }
+  return { physicalShare: 0.5, magicShare: 0.5 }
 }
 
 function staticTopReason(

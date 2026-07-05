@@ -392,7 +392,7 @@ const physicalDefenseItemByClass = {
   enchanter: "zhonyas-hourglass",
   fighter: "steraks-gage",
   mage: "zhonyas-hourglass",
-  marksman: "kraken-slayer",
+  marksman: "randuins-omen",
   tank: "sunfire-aegis",
 } as const satisfies Record<ChampionClass, ItemId>
 
@@ -401,7 +401,7 @@ const magicDefenseItemByClass = {
   enchanter: "banshees-veil",
   fighter: "steraks-gage",
   mage: "banshees-veil",
-  marksman: "kraken-slayer",
+  marksman: "randuins-omen",
   tank: "hollow-radiance",
 } as const satisfies Record<ChampionClass, ItemId>
 
@@ -526,10 +526,7 @@ function chooseAlternativeItemId(
   }
 
   if (needs.magicThreats > needs.physicalThreats) {
-    return differentItem(
-      championClass === "tank" ? "hollow-radiance" : "banshees-veil",
-      targetItemId
-    )
+    return differentItem(magicDefenseItemByClass[championClass], targetItemId)
   }
 
   if (needs.physicalThreats > needs.magicThreats) {
@@ -638,6 +635,10 @@ function chooseFullBuildIds(
 
   if (needs.hasHealing) {
     ids.push(completedAntiHealItemByClass[championClass])
+  }
+
+  if (needs.hasAntiCrit) {
+    ids.push(antiCritItemByClass[championClass])
   }
 
   if (needs.needsPenetration) {
