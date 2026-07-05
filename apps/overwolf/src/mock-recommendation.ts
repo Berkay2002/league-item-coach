@@ -4,6 +4,7 @@ import {
   type ItemId,
   type ItemTag,
   type ManualPlannerInput,
+  type PlannerItemRecommendation,
   type RecommendationConfidence,
 } from "@workspace/recommender"
 
@@ -45,14 +46,10 @@ export function createMockOverlayRecommendation(): MockOverlayRecommendation {
     currentGold: mockPlannerInput.currentGold,
     targetItem: toOverlayItem(recommendation.targetItem),
     affordableComponent: recommendation.buyNow.component
-      ? toOverlayItem(recommendation.buyNow.component, {
-          reason: `${recommendation.buyNow.component.name} fits the ${recommendation.targetItem.name} path at ${mockPlannerInput.currentGold} gold.`,
-        })
+      ? toOverlayItem(recommendation.buyNow.component, recommendation.buyNow.reason)
       : undefined,
     alternativeItem: recommendation.alternativeItem
-      ? toOverlayItem(recommendation.alternativeItem, {
-          reason: `${recommendation.alternativeItem.name} is the damage-first tradeoff if healing is less important.`,
-        })
+      ? toOverlayItem(recommendation.alternativeItem)
       : undefined,
     confidence: recommendation.confidence,
     explanation: recommendation.explanation,
@@ -65,13 +62,13 @@ export function createMockOverlayRecommendation(): MockOverlayRecommendation {
 }
 
 function toOverlayItem(
-  item: ReturnType<typeof recommendForManualPlanner>["targetItem"],
-  overrides: Partial<Pick<OverlayItemRecommendation, "reason">> = {}
+  item: PlannerItemRecommendation,
+  reason = item.reason
 ): OverlayItemRecommendation {
   return {
     itemId: item.itemId,
     name: item.name,
-    reason: overrides.reason ?? item.reason,
+    reason,
     tags: item.tags,
   }
 }

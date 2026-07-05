@@ -41,7 +41,7 @@ const baselineNeedPlanDefinition = {
   targetReason: (championName) =>
     `${championName} starts from a seeded baseline item for the selected role.`,
   alternativeReason:
-    "Use this when the baseline plan matters more than the defensive adjustment.",
+    "The baseline plan remains the alternative when it matters more than the defensive adjustment.",
   learningRule:
     "Start from the seeded baseline, then adjust the next slot for the clearest enemy need.",
   explanation: (championName, itemName) =>
@@ -54,7 +54,7 @@ const needPlanDefinitionByReason = {
     targetReason: (championName, itemName) =>
       `${championName} targets ${itemName} because a fed crit threat makes armor and crit reduction the clearest need.`,
     alternativeReason:
-      "Use this when core damage is more important than answering crit first.",
+      "Core damage is the alternative when it matters more than answering crit first.",
     learningRule:
       "When a fed crit threat is ahead, add anti-crit armor before returning to baseline damage.",
     explanation: (championName, itemName) =>
@@ -65,7 +65,7 @@ const needPlanDefinitionByReason = {
     targetReason: (championName, itemName) =>
       `${championName} targets ${itemName} because enemy healing is the clearest team-comp need.`,
     alternativeReason:
-      "Use this when core damage is more important than answering healing first.",
+      "Core damage is the alternative when it matters more than answering healing first.",
     learningRule:
       "When enemy champions bring repeat healing, reserve an early anti-heal slot.",
     explanation: (championName, itemName) =>
@@ -76,7 +76,7 @@ const needPlanDefinitionByReason = {
     targetReason: (championName, itemName) =>
       `${championName} targets ${itemName} because physical damage is the clearest defensive need.`,
     alternativeReason:
-      "Use this when the baseline plan matters more than the defensive adjustment.",
+      "The baseline plan remains the alternative when it matters more than the defensive adjustment.",
     learningRule:
       "When physical damage is the larger threat, add armor or survivability without abandoning the core plan.",
     explanation: (championName, itemName) =>
@@ -88,7 +88,7 @@ const needPlanDefinitionByReason = {
     targetReason: (championName, itemName) =>
       `${championName} targets ${itemName} because the strongest fed magic threat outweighs the raw team damage split.`,
     alternativeReason:
-      "Use this when the baseline plan matters more than the defensive adjustment.",
+      "The baseline plan remains the alternative when it matters more than the defensive adjustment.",
     learningRule:
       "When a fed magic threat is ahead, add a defensive adjustment before returning to the core plan.",
     explanation: (championName, itemName) =>
@@ -99,7 +99,7 @@ const needPlanDefinitionByReason = {
     targetReason: (championName, itemName) =>
       `${championName} targets ${itemName} because the strongest fed physical threat outweighs the raw team damage split.`,
     alternativeReason:
-      "Use this when the baseline plan matters more than the defensive adjustment.",
+      "The baseline plan remains the alternative when it matters more than the defensive adjustment.",
     learningRule:
       "When a fed physical threat is ahead, add armor or survivability before returning to the core plan.",
     explanation: (championName, itemName) =>
@@ -110,7 +110,7 @@ const needPlanDefinitionByReason = {
     targetReason: (championName, itemName) =>
       `${championName} targets ${itemName} because magic damage is the clearest defensive need.`,
     alternativeReason:
-      "Use this when the baseline plan matters more than the defensive adjustment.",
+      "The baseline plan remains the alternative when it matters more than the defensive adjustment.",
     learningRule:
       "When magic damage is the larger threat, add a defensive adjustment without abandoning the core plan.",
     explanation: (championName, itemName) =>
@@ -121,7 +121,7 @@ const needPlanDefinitionByReason = {
     targetReason: (championName, itemName) =>
       `${championName} targets ${itemName} because enemy tanks make penetration the clearest need.`,
     alternativeReason:
-      "Use this when baseline damage is more important than answering tanks first.",
+      "Baseline damage is the alternative when it matters more than answering tanks first.",
     learningRule:
       "When the enemy team has multiple tanks, add penetration or anti-tank damage after the baseline item.",
     explanation: (championName, itemName) =>
