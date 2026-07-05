@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test"
 import {
   recommendForManualPlanner,
   seededPlannerCatalog,
+  type ChampionId,
   type ManualPlannerInput,
   type RecommendationConfidence,
 } from "./index"
@@ -45,6 +46,24 @@ const staticHealingCompFixture = {
     tag: "anti-heal",
   },
 } satisfies StaticCompFixture
+
+function enemySnapshot(
+  championId: ChampionId,
+  overrides: Partial<
+    NonNullable<ManualPlannerInput["enemyLiveSnapshots"]>[number]
+  > = {}
+): NonNullable<ManualPlannerInput["enemyLiveSnapshots"]>[number] {
+  return {
+    championId,
+    items: [],
+    level: 9,
+    creepScore: 80,
+    kills: 1,
+    assists: 2,
+    deaths: 2,
+    ...overrides,
+  }
+}
 
 describe("manual planner recommendation", () => {
   test.each([staticHealingCompFixture])("$name", ({ input, expected }) => {
@@ -154,6 +173,198 @@ describe("manual planner recommendation", () => {
   })
 
   test.each([
+    {
+      name: "fed physical threat overrides a raw AP-heavy enemy comp",
+      input: {
+        championId: "lux",
+        role: "mid",
+        allyChampionIds: ["jinx"],
+        enemyChampionIds: ["zed", "ahri", "soraka"],
+        enemyLiveSnapshots: [
+          enemySnapshot("zed", {
+            items: [
+              {
+                displayName: "Infinity Edge",
+                itemId: 3031,
+                price: 3450,
+              },
+            ],
+            level: 13,
+            creepScore: 142,
+            kills: 10,
+            assists: 4,
+            deaths: 1,
+          }),
+          enemySnapshot("ahri"),
+          enemySnapshot("soraka"),
+        ],
+        currentGold: 900,
+        ownedComponentIds: [],
+      } satisfies ManualPlannerInput,
+      targetItemId: "zhonyas-hourglass",
+      alternativeItemId: "liandrys-torment",
+      fullBuildItemId: "liandrys-torment",
+      learningRule: "fed physical threat",
+    },
+    {
+      name: "fed magic threat overrides a raw AD-heavy enemy comp",
+      input: {
+        championId: "malphite",
+        role: "top",
+        allyChampionIds: ["jinx"],
+        enemyChampionIds: ["ahri", "zed", "darius", "jinx", "garen"],
+        enemyLiveSnapshots: [
+          enemySnapshot("ahri", {
+            items: [
+              {
+                displayName: "Rabadon's Deathcap",
+                itemId: 3089,
+                price: 3600,
+              },
+            ],
+            level: 14,
+            creepScore: 155,
+            kills: 11,
+            assists: 5,
+            deaths: 1,
+          }),
+          enemySnapshot("zed"),
+          enemySnapshot("darius"),
+          enemySnapshot("jinx"),
+          enemySnapshot("garen"),
+        ],
+        currentGold: 900,
+        ownedComponentIds: [],
+      } satisfies ManualPlannerInput,
+      targetItemId: "hollow-radiance",
+      alternativeItemId: "sunfire-aegis",
+      fullBuildItemId: "sunfire-aegis",
+      learningRule: "fed magic threat",
+    },
+    {
+      name: "live healing threat moves anti-heal into the primary target",
+      input: {
+        championId: "jinx",
+        role: "bot",
+        allyChampionIds: ["lux"],
+        enemyChampionIds: ["aatrox", "soraka", "zed"],
+        enemyLiveSnapshots: [
+          enemySnapshot("aatrox", {
+            items: [
+              {
+                displayName: "Black Cleaver",
+                itemId: 3071,
+                price: 3000,
+              },
+            ],
+            level: 12,
+            creepScore: 122,
+            kills: 7,
+            assists: 4,
+            deaths: 1,
+          }),
+          enemySnapshot("soraka", {
+            level: 10,
+            creepScore: 18,
+            kills: 1,
+            assists: 12,
+            deaths: 1,
+          }),
+          enemySnapshot("zed"),
+        ],
+        currentGold: 900,
+        ownedComponentIds: [],
+      } satisfies ManualPlannerInput,
+      targetItemId: "mortal-reminder",
+      alternativeItemId: "kraken-slayer",
+      fullBuildItemId: "mortal-reminder",
+      learningRule: "repeat healing",
+    },
+    {
+      name: "fed crit carry moves anti-crit armor into the primary target",
+      input: {
+        championId: "darius",
+        role: "top",
+        allyChampionIds: ["jinx"],
+        enemyChampionIds: ["jinx", "zed", "garen"],
+        enemyLiveSnapshots: [
+          enemySnapshot("jinx", {
+            items: [
+              {
+                displayName: "Infinity Edge",
+                itemId: 3031,
+                price: 3450,
+              },
+            ],
+            level: 13,
+            creepScore: 170,
+            kills: 9,
+            assists: 3,
+            deaths: 1,
+          }),
+          enemySnapshot("zed"),
+          enemySnapshot("garen"),
+        ],
+        currentGold: 900,
+        ownedComponentIds: [],
+      } satisfies ManualPlannerInput,
+      targetItemId: "randuins-omen",
+      alternativeItemId: "steraks-gage",
+      fullBuildItemId: "steraks-gage",
+      learningRule: "fed crit threat",
+    },
+    {
+      name: "tank threats move penetration into the primary target",
+      input: {
+        championId: "jinx",
+        role: "bot",
+        allyChampionIds: ["lux"],
+        enemyChampionIds: ["malphite", "leona", "amumu"],
+        enemyLiveSnapshots: [
+          enemySnapshot("malphite", {
+            items: [
+              {
+                displayName: "Sunfire Aegis",
+                itemId: 3068,
+                price: 2700,
+              },
+            ],
+            level: 12,
+            creepScore: 135,
+            kills: 4,
+            assists: 8,
+            deaths: 2,
+          }),
+          enemySnapshot("leona", {
+            items: [
+              {
+                displayName: "Thornmail",
+                itemId: 3075,
+                price: 2450,
+              },
+            ],
+            level: 11,
+            creepScore: 35,
+            kills: 2,
+            assists: 12,
+            deaths: 2,
+          }),
+          enemySnapshot("amumu", {
+            level: 11,
+            creepScore: 118,
+            kills: 5,
+            assists: 7,
+            deaths: 3,
+          }),
+        ],
+        currentGold: 1500,
+        ownedComponentIds: [],
+      } satisfies ManualPlannerInput,
+      targetItemId: "lord-dominiks-regards",
+      alternativeItemId: "kraken-slayer",
+      fullBuildItemId: "kraken-slayer",
+      learningRule: "penetration",
+    },
     {
       name: "tank-heavy enemies move anti-tank into the plan",
       input: {

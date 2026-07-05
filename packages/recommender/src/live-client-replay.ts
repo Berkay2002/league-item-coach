@@ -2,6 +2,8 @@ import {
   seededPlannerCatalog,
   type ChampionId,
   type ComponentItemId,
+  type ManualPlannerEnemyItem,
+  type ManualPlannerEnemySnapshot,
   type ManualPlannerInput,
   type Role,
 } from "./manual-planner"
@@ -140,6 +142,7 @@ export function adaptLiveClientReplayToPlannerInput(
       role,
       allyChampionIds: championIdsWithoutActive(sameTeamPlayers, activePlayer),
       enemyChampionIds: championIds(otherTeamPlayers),
+      enemyLiveSnapshots: enemyLiveSnapshots(otherTeamPlayers),
       currentGold,
       ownedComponentIds: ownedComponentIds(activePlayer),
     },
@@ -217,6 +220,36 @@ function championIds(
   return players.flatMap((player) =>
     player.championId ? [player.championId] : []
   )
+}
+
+function enemyLiveSnapshots(
+  players: readonly NormalizedLiveClientPlayer[]
+): ManualPlannerEnemySnapshot[] {
+  return players.flatMap((player) =>
+    player.championId
+      ? [
+          {
+            championId: player.championId,
+            items: plannerEnemyItems(player.items),
+            level: player.level,
+            creepScore: player.score.creepScore,
+            kills: player.score.kills,
+            assists: player.score.assists,
+            deaths: player.score.deaths,
+          },
+        ]
+      : []
+  )
+}
+
+function plannerEnemyItems(
+  items: readonly NormalizedLiveClientItem[]
+): ManualPlannerEnemyItem[] {
+  return items.map((item) => ({
+    displayName: item.displayName,
+    itemId: item.itemId,
+    price: item.price,
+  }))
 }
 
 function ownedComponentIds(

@@ -44,6 +44,8 @@ export {
   type DamageProfile,
   type ItemId,
   type ItemTag,
+  type ManualPlannerEnemyItem,
+  type ManualPlannerEnemySnapshot,
   type ManualPlannerInput,
   type ManualPlannerRecommendation,
   type PlannerBuyNowRecommendation,
