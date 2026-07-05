@@ -577,19 +577,19 @@ function chooseBuyNowRecommendation(
   if (componentId) {
     const component = toRecommendationItem(
       componentId,
-      `Buy ${seededItemCatalog[componentId].name} now because it builds toward ${targetItem.name}.`
+      `${seededItemCatalog[componentId].name} is the affordable component that builds toward ${targetItem.name}.`
     )
 
     if (ownedTargetComponentIds.length > 0) {
       return {
         component,
-        reason: `You already own ${formatItemList(ownedTargetComponentIds)}, so buy ${component.name} next for ${targetItem.name}.`,
+        reason: `You already own ${formatItemList(ownedTargetComponentIds)}; ${component.name} is the next unowned component for ${targetItem.name}.`,
       }
     }
 
     return {
       component,
-      reason: `Buy ${component.name} now for ${targetItem.name}.`,
+      reason: `${component.name} is the affordable component for ${targetItem.name}.`,
     }
   }
 
@@ -606,7 +606,7 @@ function chooseBuyNowRecommendation(
   }
 
   return {
-    reason: `Save for ${seededItemCatalog[sortedFittingUnownedComponentIds[0]].name} to keep building toward ${targetItem.name}.`,
+    reason: `${seededItemCatalog[sortedFittingUnownedComponentIds[0]].name} is the next component for ${targetItem.name}; current gold is below its cost.`,
   }
 }
 
