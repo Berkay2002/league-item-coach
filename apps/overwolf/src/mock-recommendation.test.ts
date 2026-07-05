@@ -2,7 +2,10 @@ import { describe, expect, test } from "bun:test"
 
 import { validateRecommendationOutput } from "@workspace/recommender"
 
-import { createMockOverlayRecommendation } from "./mock-recommendation"
+import {
+  createMockOverlayRecommendation,
+  mockPlannerInput,
+} from "./mock-recommendation"
 
 describe("mock Overwolf recommendation output", () => {
   test("returns one compact next-item recommendation with current-gold context", () => {
@@ -34,6 +37,19 @@ describe("mock Overwolf recommendation output", () => {
     expect(result.violations).toEqual([])
   })
 
+  test("returns a compliance-safe fallback when mock generation fails", () => {
+    const recommendation = createMockOverlayRecommendation({
+      ...mockPlannerInput,
+      championId: "missing-champion" as typeof mockPlannerInput.championId,
+    })
+    const result = validateRecommendationOutput(recommendation)
+
+    expect(recommendation.confidence).toBe("low")
+    expect(recommendation.targetItem.name).toBe("Kraken Slayer")
+    expect(result.allowed).toBe(true)
+    expect(result.violations).toEqual([])
+  })
+
   test("does not render command-like notification copy", () => {
     const recommendation = createMockOverlayRecommendation()
     const serialized = JSON.stringify(recommendation)
@@ -41,7 +57,7 @@ describe("mock Overwolf recommendation output", () => {
     expect(serialized).not.toMatch(/\bbuy\b.*\bnow\b/i)
     expect(serialized).not.toMatch(/\buse this when\b/i)
     expect(serialized).not.toMatch(/\bpower[- ]?spike\b/i)
-    expect(serialized).not.toMatch(/\b(timer|cooldown)\b/i)
+    expect(serialized).not.toMatch(/\b(timers?|cooldowns?)\b/i)
   })
 })
 

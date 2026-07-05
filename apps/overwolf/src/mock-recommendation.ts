@@ -28,7 +28,7 @@ export interface OverlayItemRecommendation {
   tags: readonly ItemTag[]
 }
 
-const mockPlannerInput: ManualPlannerInput = {
+export const mockPlannerInput: ManualPlannerInput = {
   championId: "jinx",
   role: "bot",
   allyChampionIds: ["lux", "amumu"],
@@ -37,13 +37,25 @@ const mockPlannerInput: ManualPlannerInput = {
   ownedComponentIds: [],
 }
 
-export function createMockOverlayRecommendation(): MockOverlayRecommendation {
-  const recommendation = recommendForManualPlanner(mockPlannerInput)
+export function createMockOverlayRecommendation(
+  input: ManualPlannerInput = mockPlannerInput
+): MockOverlayRecommendation {
+  try {
+    return createRecommendedMockOverlayRecommendation(input)
+  } catch {
+    return createFallbackMockOverlayRecommendation()
+  }
+}
+
+function createRecommendedMockOverlayRecommendation(
+  input: ManualPlannerInput
+): MockOverlayRecommendation {
+  const recommendation = recommendForManualPlanner(input)
   const overlayRecommendation: MockOverlayRecommendation = {
     source: "mock",
     champion: recommendation.champion.name,
     role: "Bot",
-    currentGold: mockPlannerInput.currentGold,
+    currentGold: input.currentGold,
     targetItem: toOverlayItem(recommendation.targetItem),
     affordableComponent: recommendation.buyNow.component
       ? toOverlayItem(recommendation.buyNow.component, recommendation.buyNow.reason)
@@ -59,6 +71,29 @@ export function createMockOverlayRecommendation(): MockOverlayRecommendation {
   assertRecommendationOutputAllowed(overlayRecommendation)
 
   return overlayRecommendation
+}
+
+function createFallbackMockOverlayRecommendation(): MockOverlayRecommendation {
+  const fallbackRecommendation: MockOverlayRecommendation = {
+    source: "mock",
+    champion: "Mock champion",
+    role: "Bot",
+    currentGold: 0,
+    targetItem: {
+      itemId: "kraken-slayer",
+      name: "Kraken Slayer",
+      reason: "Fallback seeded item shown because mock data is unavailable.",
+      tags: ["damage"],
+    },
+    confidence: "low",
+    explanation: "Mock recommendation data is unavailable in this shell.",
+    learningRule:
+      "Item recommendations compare enemy needs with the next useful item slot.",
+  }
+
+  assertRecommendationOutputAllowed(fallbackRecommendation)
+
+  return fallbackRecommendation
 }
 
 function toOverlayItem(

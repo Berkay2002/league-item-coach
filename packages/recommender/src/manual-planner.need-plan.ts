@@ -36,12 +36,14 @@ interface NeedPlanDefinition {
   explanation: (championName: string, itemName: string) => string
 }
 
+const baselineAlternativeReason =
+  "The baseline plan remains the alternative when it matters more than the defensive adjustment."
+
 const baselineNeedPlanDefinition = {
   target: "baseline",
   targetReason: (championName) =>
     `${championName} starts from a seeded baseline item for the selected role.`,
-  alternativeReason:
-    "The baseline plan remains the alternative when it matters more than the defensive adjustment.",
+  alternativeReason: baselineAlternativeReason,
   learningRule:
     "Start from the seeded baseline, then adjust the next slot for the clearest enemy need.",
   explanation: (championName, itemName) =>
@@ -75,8 +77,7 @@ const needPlanDefinitionByReason = {
     target: "physicalDefense",
     targetReason: (championName, itemName) =>
       `${championName} targets ${itemName} because physical damage is the clearest defensive need.`,
-    alternativeReason:
-      "The baseline plan remains the alternative when it matters more than the defensive adjustment.",
+    alternativeReason: baselineAlternativeReason,
     learningRule:
       "When physical damage is the larger threat, add armor or survivability without abandoning the core plan.",
     explanation: (championName, itemName) =>
@@ -87,8 +88,7 @@ const needPlanDefinitionByReason = {
     target: "magicDefense",
     targetReason: (championName, itemName) =>
       `${championName} targets ${itemName} because the strongest fed magic threat outweighs the raw team damage split.`,
-    alternativeReason:
-      "The baseline plan remains the alternative when it matters more than the defensive adjustment.",
+    alternativeReason: baselineAlternativeReason,
     learningRule:
       "When a fed magic threat is ahead, add a defensive adjustment before returning to the core plan.",
     explanation: (championName, itemName) =>
@@ -98,8 +98,7 @@ const needPlanDefinitionByReason = {
     target: "physicalDefense",
     targetReason: (championName, itemName) =>
       `${championName} targets ${itemName} because the strongest fed physical threat outweighs the raw team damage split.`,
-    alternativeReason:
-      "The baseline plan remains the alternative when it matters more than the defensive adjustment.",
+    alternativeReason: baselineAlternativeReason,
     learningRule:
       "When a fed physical threat is ahead, add armor or survivability before returning to the core plan.",
     explanation: (championName, itemName) =>
@@ -109,8 +108,7 @@ const needPlanDefinitionByReason = {
     target: "magicDefense",
     targetReason: (championName, itemName) =>
       `${championName} targets ${itemName} because magic damage is the clearest defensive need.`,
-    alternativeReason:
-      "The baseline plan remains the alternative when it matters more than the defensive adjustment.",
+    alternativeReason: baselineAlternativeReason,
     learningRule:
       "When magic damage is the larger threat, add a defensive adjustment without abandoning the core plan.",
     explanation: (championName, itemName) =>
