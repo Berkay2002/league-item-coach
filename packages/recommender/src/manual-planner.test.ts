@@ -135,7 +135,7 @@ describe("manual planner recommendation", () => {
 
     expect(recommendation.targetItem.itemId).toBe("mortal-reminder")
     expect(recommendation.buyNow.component).toBeUndefined()
-    expect(recommendation.buyNow.reason).toContain("Save")
+    expect(recommendation.buyNow.reason).toContain("current gold is below")
     expect(recommendation.compliance.allowed).toBe(true)
   })
 

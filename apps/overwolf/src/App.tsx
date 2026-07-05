@@ -1,5 +1,6 @@
 import { useMemo } from "react"
 
+import type { RecommendationConfidence } from "@workspace/recommender"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Card,
@@ -115,6 +116,6 @@ function TagList({ tags }: TagListProps) {
   )
 }
 
-function confidenceLabel(confidence: string): string {
+function confidenceLabel(confidence: RecommendationConfidence): string {
   return `${confidence[0].toUpperCase()}${confidence.slice(1)}`
 }
