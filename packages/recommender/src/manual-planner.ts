@@ -7,6 +7,15 @@ import {
   explainRunePage,
   type PlannerRuneRecommendation,
 } from "./manual-planner.runes"
+import {
+  summarizeEnemyNeeds,
+  type EnemyNeeds,
+} from "./manual-planner.enemy-needs"
+import {
+  contextualNeedPlan,
+  needPlan,
+  type NeedPlanItemMaps,
+} from "./manual-planner.need-plan"
 
 export type Role = "top" | "jungle" | "mid" | "bot" | "support"
 
@@ -16,6 +25,7 @@ export type ChampionClass =
   "assassin" | "enchanter" | "fighter" | "mage" | "marksman" | "tank"
 
 export type ItemTag =
+  | "anti-crit"
   | "anti-heal"
   | "anti-tank"
   | "armor"
@@ -230,6 +240,13 @@ const seededItemCatalog = {
     tags: ["anti-heal", "penetration", "crit"],
     fits: ["assassin", "marksman"],
   },
+  "randuins-omen": {
+    id: "randuins-omen",
+    name: "Randuin's Omen",
+    buildStage: "completed",
+    tags: ["anti-crit", "armor", "survivability"],
+    fits: ["assassin", "enchanter", "fighter", "mage", "marksman", "tank"],
+  },
   "steraks-gage": {
     id: "steraks-gage",
     name: "Sterak's Gage",
@@ -274,8 +291,25 @@ export interface ManualPlannerInput {
   role: Role
   allyChampionIds: readonly ChampionId[]
   enemyChampionIds: readonly ChampionId[]
+  enemyLiveSnapshots?: readonly ManualPlannerEnemySnapshot[]
   currentGold: number
   ownedComponentIds: readonly ComponentItemId[]
+}
+
+export interface ManualPlannerEnemyItem {
+  displayName?: string
+  itemId: number
+  price: number
+}
+
+export interface ManualPlannerEnemySnapshot {
+  championId: ChampionId
+  items: readonly ManualPlannerEnemyItem[]
+  level: number
+  creepScore: number
+  kills: number
+  assists: number
+  deaths: number
 }
 
 export interface PlannerItemRecommendation {
@@ -340,6 +374,7 @@ const completedAntiHealItemByClass = {
 const targetComponentIdsByItemId: Partial<
   Record<ItemId, readonly ComponentItemId[]>
 > = {
+  "lord-dominiks-regards": ["last-whisper"],
   "mortal-reminder": ["executioners-calling", "last-whisper"],
 }
 
@@ -352,13 +387,53 @@ const antiTankItemByClass = {
   tank: "sunfire-aegis",
 } as const satisfies Record<ChampionClass, ItemId>
 
+const physicalDefenseItemByClass = {
+  assassin: "steraks-gage",
+  enchanter: "zhonyas-hourglass",
+  fighter: "steraks-gage",
+  mage: "zhonyas-hourglass",
+  marksman: "randuins-omen",
+  tank: "sunfire-aegis",
+} as const satisfies Record<ChampionClass, ItemId>
+
+const magicDefenseItemByClass = {
+  assassin: "banshees-veil",
+  enchanter: "banshees-veil",
+  fighter: "steraks-gage",
+  mage: "banshees-veil",
+  marksman: "randuins-omen",
+  tank: "hollow-radiance",
+} as const satisfies Record<ChampionClass, ItemId>
+
+const antiCritItemByClass = {
+  assassin: "randuins-omen",
+  enchanter: "randuins-omen",
+  fighter: "randuins-omen",
+  mage: "randuins-omen",
+  marksman: "randuins-omen",
+  tank: "randuins-omen",
+} as const satisfies Record<ChampionClass, ItemId>
+
+const needPlanItemMaps = {
+  antiCrit: antiCritItemByClass,
+  antiHeal: completedAntiHealItemByClass,
+  antiTank: antiTankItemByClass,
+  baseline: baselineItemByClass,
+  magicDefense: magicDefenseItemByClass,
+  physicalDefense: physicalDefenseItemByClass,
+} satisfies NeedPlanItemMaps
+
 export function recommendForManualPlanner(
   input: ManualPlannerInput
 ): ManualPlannerRecommendation {
   const champion = seededChampionCatalog[input.championId]
   const allies = input.allyChampionIds.map((id) => seededChampionCatalog[id])
   const enemies = input.enemyChampionIds.map((id) => seededChampionCatalog[id])
-  const needs = summarizeEnemyNeeds(enemies)
+  const needs = summarizeEnemyNeeds({
+    championCatalog: seededChampionCatalog,
+    enemies,
+    snapshots: input.enemyLiveSnapshots ?? [],
+  })
   const targetItemId = chooseTargetItemId(champion.class, needs)
   const alternativeItemId = chooseAlternativeItemId(
     champion.class,
@@ -428,47 +503,11 @@ export function recommendForManualPlanner(
   }
 }
 
-interface EnemyNeeds {
-  physicalThreats: number
-  magicThreats: number
-  tankCount: number
-  hasHealing: boolean
-}
-
-function summarizeEnemyNeeds(enemies: readonly CatalogChampion[]): EnemyNeeds {
-  return enemies.reduce<EnemyNeeds>(
-    (needs, enemy) => ({
-      physicalThreats:
-        needs.physicalThreats +
-        (enemy.damageProfile === "physical" || enemy.damageProfile === "mixed"
-          ? 1
-          : 0),
-      magicThreats:
-        needs.magicThreats +
-        (enemy.damageProfile === "magic" || enemy.damageProfile === "mixed"
-          ? 1
-          : 0),
-      tankCount: needs.tankCount + (hasTrait(enemy, "tank") ? 1 : 0),
-      hasHealing: needs.hasHealing || hasTrait(enemy, "healing"),
-    }),
-    {
-      physicalThreats: 0,
-      magicThreats: 0,
-      tankCount: 0,
-      hasHealing: false,
-    }
-  )
-}
-
 function chooseTargetItemId(
   championClass: ChampionClass,
   needs: EnemyNeeds
 ): ItemId {
-  if (needs.hasHealing) {
-    return completedAntiHealItemByClass[championClass]
-  }
-
-  return baselineItemByClass[championClass]
+  return needPlan(needs, needPlanItemMaps).targetItemForClass(championClass)
 }
 
 function chooseAlternativeItemId(
@@ -482,19 +521,16 @@ function chooseAlternativeItemId(
     return baselineItemId
   }
 
-  if (needs.tankCount >= 2) {
+  if (needs.needsPenetration) {
     return differentItem(antiTankItemByClass[championClass], targetItemId)
   }
 
   if (needs.magicThreats > needs.physicalThreats) {
-    return differentItem(
-      championClass === "tank" ? "hollow-radiance" : "banshees-veil",
-      targetItemId
-    )
+    return differentItem(magicDefenseItemByClass[championClass], targetItemId)
   }
 
-  if (needs.physicalThreats > needs.magicThreats && championClass === "mage") {
-    return differentItem("zhonyas-hourglass", targetItemId)
+  if (needs.physicalThreats > needs.magicThreats) {
+    return differentItem(physicalDefenseItemByClass[championClass], targetItemId)
   }
 
   return undefined
@@ -601,7 +637,11 @@ function chooseFullBuildIds(
     ids.push(completedAntiHealItemByClass[championClass])
   }
 
-  if (needs.tankCount >= 2) {
+  if (needs.hasAntiCrit) {
+    ids.push(antiCritItemByClass[championClass])
+  }
+
+  if (needs.needsPenetration) {
     ids.push(antiTankItemByClass[championClass])
   }
 
@@ -628,26 +668,21 @@ function targetReason(
   itemId: ItemId,
   needs: EnemyNeeds
 ): string {
-  if (needs.hasHealing) {
-    return `${champion.name} targets ${seededItemCatalog[itemId].name} because enemy healing is the clearest team-comp need.`
-  }
-
-  return `${champion.name} starts from a seeded baseline item for the selected role.`
+  return needPlan(needs, needPlanItemMaps).targetReason(
+    champion.name,
+    seededItemCatalog[itemId].name
+  )
 }
 
 function alternativeReason(needs: EnemyNeeds): string {
-  if (needs.hasHealing) {
-    return "Use this when core damage is more important than answering healing first."
-  }
-
-  if (needs.tankCount >= 2) {
-    return "Use this when baseline damage is more important than answering tanks first."
-  }
-
-  return "Use this when the baseline plan matters more than the defensive adjustment."
+  return contextualNeedPlan(needs, needPlanItemMaps).alternativeReason
 }
 
 function fullBuildReason(itemId: ItemId): string {
+  if (hasTag(itemId, "anti-crit")) {
+    return "Keeps an armor answer available for fed crit damage."
+  }
+
   if (hasTag(itemId, "anti-heal")) {
     return "Keeps anti-heal available in the planned build."
   }
@@ -661,13 +696,6 @@ function fullBuildReason(itemId: ItemId): string {
   }
 
   return "Continues the seeded baseline build."
-}
-
-function hasTrait(
-  champion: CatalogChampion,
-  trait: SeededChampion["traits"][number]
-): boolean {
-  return (champion.traits as readonly string[]).includes(trait)
 }
 
 function hasTag(itemId: ItemId, tag: ItemTag): boolean {
@@ -689,29 +717,19 @@ function formatItemList(itemIds: readonly ItemId[]): string {
 }
 
 function learningRule(needs: EnemyNeeds): string {
-  if (needs.hasHealing) {
-    return "When enemy champions bring repeat healing, reserve an early anti-heal slot."
-  }
-
-  if (needs.tankCount >= 2) {
-    return "When the enemy team has multiple tanks, add penetration or anti-tank damage after the baseline item."
-  }
-
-  if (needs.magicThreats > needs.physicalThreats) {
-    return "When magic damage is the larger threat, add magic resist without abandoning the core plan."
-  }
-
-  if (needs.physicalThreats > needs.magicThreats) {
-    return "When physical damage is the larger threat, add armor or survivability without abandoning the core plan."
-  }
-
-  return "Start from the seeded baseline, then adjust the next slot for the clearest enemy need."
+  return contextualNeedPlan(needs, needPlanItemMaps).learningRule
 }
 
 function confidenceForNeeds(
   needs: EnemyNeeds
 ): ManualPlannerRecommendation["confidence"] {
-  if (needs.hasHealing) {
+  if (
+    needs.hasHealing ||
+    needs.hasAntiCrit ||
+    needs.needsPenetration ||
+    needs.needsSurvivability ||
+    needs.topReason !== "baseline"
+  ) {
     return "medium"
   }
 
@@ -723,9 +741,8 @@ function explanationForRecommendation(
   targetItem: PlannerItemRecommendation,
   needs: EnemyNeeds
 ): string {
-  if (needs.hasHealing) {
-    return `${champion.name} should target ${targetItem.name} because enemy healing is the clearest team-comp need.`
-  }
-
-  return `${champion.name} should target ${targetItem.name} from the seeded ${targetItem.tags[0]} baseline.`
+  return needPlan(needs, needPlanItemMaps).explanation(
+    champion.name,
+    targetItem.name
+  )
 }

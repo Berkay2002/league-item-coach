@@ -16,6 +16,41 @@ describe("Live Client Data replay adapter", () => {
       role: "bot",
       allyChampionIds: ["lux", "amumu"],
       enemyChampionIds: ["aatrox", "soraka", "zed"],
+      enemyLiveSnapshots: [
+        {
+          championId: "aatrox",
+          items: [
+            {
+              displayName: "Ruby Crystal",
+              itemId: 1028,
+              price: 400,
+            },
+          ],
+          level: 11,
+          creepScore: 105,
+          kills: 6,
+          assists: 2,
+          deaths: 1,
+        },
+        {
+          championId: "soraka",
+          items: [],
+          level: 8,
+          creepScore: 12,
+          kills: 0,
+          assists: 9,
+          deaths: 1,
+        },
+        {
+          championId: "zed",
+          items: [],
+          level: 10,
+          creepScore: 97,
+          kills: 5,
+          assists: 1,
+          deaths: 2,
+        },
+      ],
       currentGold: 1500,
       ownedComponentIds: ["executioners-calling"],
     })
