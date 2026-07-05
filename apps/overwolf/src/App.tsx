@@ -54,7 +54,9 @@ export function App() {
           <div className="grid grid-cols-2 gap-2">
             <MiniItem
               label={`${recommendation.currentGold} gold component`}
-              name={recommendation.affordableComponent?.name ?? "Save gold"}
+              name={
+                recommendation.affordableComponent?.name ?? "Not affordable yet"
+              }
               reason={
                 recommendation.affordableComponent?.reason ??
                 "No matching component is affordable."

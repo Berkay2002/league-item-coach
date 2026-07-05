@@ -1,6 +1,7 @@
 import {
   assertRecommendationOutputAllowed,
   recommendForManualPlanner,
+  type ItemId,
   type ItemTag,
   type ManualPlannerInput,
   type RecommendationConfidence,
@@ -20,7 +21,7 @@ export interface MockOverlayRecommendation {
 }
 
 export interface OverlayItemRecommendation {
-  itemId: string
+  itemId: ItemId
   name: string
   reason: string
   tags: readonly ItemTag[]
