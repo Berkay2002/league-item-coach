@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import type { RecommendationConfidence } from "@workspace/recommender"
 import { Badge } from "@workspace/ui/components/badge"
@@ -9,10 +9,62 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card"
 
-import { createMockOverlayRecommendation } from "./mock-recommendation"
+import {
+  createLiveOverlayRecommendation,
+  createOverlayRecommendationFromReplay,
+  liveRecommendationRefreshMs,
+  type OverlayRecommendation,
+} from "./live-recommendation"
+import { bundledReplayFixture } from "./replay-fixtures"
 
 export function App() {
-  const recommendation = useMemo(() => createMockOverlayRecommendation(), [])
+  const initialRecommendation = useMemo(
+    () =>
+      createOverlayRecommendationFromReplay(bundledReplayFixture, {
+        source: "replay",
+      }),
+    []
+  )
+  const [recommendation, setRecommendation] = useState<OverlayRecommendation>(
+    initialRecommendation
+  )
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function refreshRecommendation() {
+      const nextRecommendation = await createLiveOverlayRecommendation()
+
+      if (isMounted) {
+        setRecommendation(nextRecommendation)
+      }
+    }
+
+    let refreshId: number | undefined
+
+    function scheduleRefresh() {
+      refreshId = window.setTimeout(() => {
+        void refreshRecommendation().finally(() => {
+          if (isMounted) {
+            scheduleRefresh()
+          }
+        })
+      }, liveRecommendationRefreshMs)
+    }
+
+    void refreshRecommendation().finally(() => {
+      if (isMounted) {
+        scheduleRefresh()
+      }
+    })
+
+    return () => {
+      isMounted = false
+      if (refreshId !== undefined) {
+        window.clearTimeout(refreshId)
+      }
+    }
+  }, [])
 
   return (
     <main className="dark min-h-svh bg-background p-3 text-foreground">
@@ -24,7 +76,7 @@ export function App() {
                 League Item Coach
               </p>
               <CardTitle className="truncate text-base">
-                {recommendation.champion} {recommendation.role}
+                {recommendation.champion} {recommendation.roleLabel}
               </CardTitle>
             </div>
             <Badge variant="secondary" className="shrink-0">
@@ -47,14 +99,14 @@ export function App() {
               {recommendation.targetItem.name}
             </div>
             <p className="text-sm text-muted-foreground">
-              {recommendation.explanation}
+              {recommendation.targetItem.reason}
             </p>
             <TagList tags={recommendation.targetItem.tags} />
           </section>
 
           <div className="grid grid-cols-2 gap-2">
             <MiniItem
-              label={`${recommendation.currentGold} gold component`}
+              label="Buy-now component"
               name={
                 recommendation.affordableComponent?.name ?? "Not affordable yet"
               }

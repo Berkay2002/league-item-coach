@@ -9,6 +9,7 @@
     "description": "Compact item recommendation shell for League Item Coach.",
     "icon": "assets/icon.png"
   },
+  "permissions": ["Web"],
   "data": {
     "start_window": "main",
     "windows": {
