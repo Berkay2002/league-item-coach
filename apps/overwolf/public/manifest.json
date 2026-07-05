@@ -1,0 +1,31 @@
+{
+  "manifest_version": 1,
+  "type": "WebApp",
+  "meta": {
+    "name": "League Item Coach",
+    "author": "Berkay",
+    "version": "0.0.1",
+    "minimum-overwolf-version": "0.199.0.15",
+    "description": "Compact item recommendation shell for League Item Coach.",
+    "icon": "assets/icon.png"
+  },
+  "data": {
+    "start_window": "main",
+    "windows": {
+      "main": {
+        "file": "index.html",
+        "transparent": false,
+        "resizable": true,
+        "show_in_taskbar": true,
+        "size": {
+          "width": 390,
+          "height": 330
+        },
+        "min_size": {
+          "width": 390,
+          "height": 330
+        }
+      }
+    }
+  }
+}
