@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import type { RecommendationConfidence } from "@workspace/recommender"
 import { Badge } from "@workspace/ui/components/badge"
@@ -9,10 +9,48 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card"
 
-import { createMockOverlayRecommendation } from "./mock-recommendation"
+import {
+  createLiveOverlayRecommendation,
+  createOverlayRecommendationFromReplay,
+  liveRecommendationRefreshMs,
+  type OverlayRecommendation,
+} from "./live-recommendation"
+import { bundledReplayFixture } from "./replay-fixtures"
 
 export function App() {
-  const recommendation = useMemo(() => createMockOverlayRecommendation(), [])
+  const initialRecommendation = useMemo(
+    () =>
+      createOverlayRecommendationFromReplay(bundledReplayFixture, {
+        source: "replay",
+      }),
+    []
+  )
+  const [recommendation, setRecommendation] = useState<OverlayRecommendation>(
+    initialRecommendation
+  )
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function refreshRecommendation() {
+      const nextRecommendation = await createLiveOverlayRecommendation()
+
+      if (isMounted) {
+        setRecommendation(nextRecommendation)
+      }
+    }
+
+    void refreshRecommendation()
+    const refreshId = window.setInterval(
+      () => void refreshRecommendation(),
+      liveRecommendationRefreshMs
+    )
+
+    return () => {
+      isMounted = false
+      window.clearInterval(refreshId)
+    }
+  }, [])
 
   return (
     <main className="dark min-h-svh bg-background p-3 text-foreground">
@@ -47,14 +85,14 @@ export function App() {
               {recommendation.targetItem.name}
             </div>
             <p className="text-sm text-muted-foreground">
-              {recommendation.explanation}
+              {recommendation.reason}
             </p>
             <TagList tags={recommendation.targetItem.tags} />
           </section>
 
           <div className="grid grid-cols-2 gap-2">
             <MiniItem
-              label={`${recommendation.currentGold} gold component`}
+              label="Buy-now component"
               name={
                 recommendation.affordableComponent?.name ?? "Not affordable yet"
               }
